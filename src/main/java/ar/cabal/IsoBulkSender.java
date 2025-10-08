@@ -6,14 +6,15 @@ import org.jpos.iso.ISOMsg;
 import org.jpos.iso.MUX;
 import org.jpos.util.NameRegistrar;
 
-import static ar.cabal.Script.muxName;
-
 public class IsoBulkSender {
 
     private final ExecutorService executor;
+    private MUX mux;
 
-    public IsoBulkSender(int poolSize) {
+
+    public IsoBulkSender(int poolSize,MUX mux) {
         this.executor = Executors.newFixedThreadPool(poolSize);
+        this.mux=mux;
     }
 
     public List<CompletableFuture<ISOMsg>> sendAllAsync(List<ISOMsg> transactions) {
@@ -29,7 +30,6 @@ public class IsoBulkSender {
         try {
             // Simulación de envío por socket al host
             System.out.println("Enviando transacción: " + tx.getMTI() + " Trace: " + tx.getString(11));
-            MUX mux = NameRegistrar.get(muxName);
             return mux.request(tx, 150000);
         } catch (Exception e) {
             throw new RuntimeException("Error enviando transacción", e);

@@ -24,7 +24,7 @@ public abstract class Origin {
         setComercioAndTerminal(msg,c);
         setDatosPrivados(msg,c);
         setCustoms(msg);
-        setAppSequenceNumberAndCryptogram(msg); // Esta depende de si es EMV
+        setAppSequenceNumberAndCryptogram(msg);
         return msg;
     }
 

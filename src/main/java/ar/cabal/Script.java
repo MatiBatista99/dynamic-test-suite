@@ -5,137 +5,134 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.jetbrains.annotations.NotNull;
 import org.jpos.iso.*;
 import org.jpos.iso.packager.GenericPackager;
-import org.jpos.q2.QFactory;
-import org.jpos.q2.iso.ChannelAdaptor;
+import org.jpos.q2.QBeanSupport;
 import org.jpos.util.NameRegistrar;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
-public class Script extends org.jpos.q2.QBeanSupport implements Runnable{
+public class Script extends QBeanSupport implements Runnable {
 
-
-    static final String muxName="mux.dynamic-channel-mux";
+    private static final String MUX_NAME = "mux.dynamic-channel-mux";
+    private static final String INPUT_FILE = "/visa_test_suite.xlsx";
+    private static final String OUTPUT_DIR = "test-cases";
+    private static final String OUTPUT_FILE = "resultados.xlsx";
 
     @Override
     protected void startService() {
         new Thread(this).start();
     }
 
+    @Override
+    public void run() {
+        log.info("Inicio procesamiento: " + Timestamp.valueOf(LocalDateTime.now()));
 
-    public void run () {
-        log.info( "Inicio procesamiento:"+ Timestamp.valueOf(LocalDateTime.now()));
-        //Consumir excel del file server
-        try {
-            InputStream is=getClass().getResourceAsStream("/visa_test_suite.xlsx"); // La idea es que esto este parametrizado a futuro tambien.
-            Workbook workbook = new XSSFWorkbook(is);
-            Map<String, Case> casesMap=new HashMap<>();
-            for (int i=0;i<workbook.getNumberOfSheets();i++){
-                Sheet sheet=workbook.getSheetAt(i);
-                String sheetName=sheet.getSheetName();
-                System.out.println("Hoja: "+sheetName);
-                for(Row row : sheet){
-                    if(row.getRowNum()==0){
-                        continue;
-                    }
-                    Case cases=getACase(row);
-                    if(cases.getCaseName()!=null){
-                        casesMap.put(cases.getCaseName(),cases);
-                    }
-                }
+        try (InputStream is = getClass().getResourceAsStream(INPUT_FILE);
+             Workbook workbookInput = new XSSFWorkbook(is);
+             Workbook workbookOutput = new XSSFWorkbook()) {
 
-            }
-            VisaOrigin visaOrigin= new VisaOrigin();
-            GenericPackager genericPackager= new GenericPackager();
-            List<ISOMsg> transactions = new ArrayList<>();
-
-            for(String cs: casesMap.keySet()){
-                Case c= casesMap.get(cs);
-                transactions.add(visaOrigin.createISOMsg(c,genericPackager));
+            File outputDir = new File(OUTPUT_DIR);
+            if (!outputDir.exists() && !outputDir.mkdirs()) {
+                throw new IOException("No se pudo crear el directorio de salida: " + OUTPUT_DIR);
             }
 
-            MUX mux = NameRegistrar.get(muxName);
-            if (mux.isConnected()) {
-                IsoBulkSender sender = new IsoBulkSender(30); // Pool de 20 hilos concurrentes
-
-                List<CompletableFuture<ISOMsg>> futures = sender.sendAllAsync(transactions);
-
-// Esperar todas las respuestas
-                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-
-                //create a workbook
-                Workbook workbookk = new XSSFWorkbook();
-                //create a sheet in the workbook(you can give it a name)
-                Sheet sheet = workbookk.createSheet("excel-sheet");
-                int i=0;
-                for (CompletableFuture<ISOMsg> f : futures) {
-                    try {
-                        ISOMsg resp = f.get();
-//create a row in the sheet
-                        Row row = sheet.createRow(i);
-
-//add cells in the sheet
-                        Cell cell = row.createCell(0);
-
-                        cell.setCellValue("Caso" + (i+1));
-
-                        Cell cell1 = row.createCell(1);
-
-                        cell1.setCellValue(casesMap.get("Caso " + (i+1) ).getResultadoEsperado());
-
-                        Cell cell2 = row.createCell(2);
-
-                        if(!Objects.equals(resp.getString(39), "000")){
-                            cell2.setCellValue("Denegada");
-                        }else{
-                            cell2.setCellValue("Aprobada");
-                        }
-                        i++;
-                        System.out.println("Respuesta recibida: " + resp.getMTI() + " RC=" + resp.getString(39));
-                    } catch (Exception e) {
-                        System.err.println("Fallo en transacción: " + e.getMessage());
-                    }
-                }
-                File outputDir = new File("/test-cases");
-                if (!outputDir.exists()) {
-                    outputDir.mkdirs(); // crea la carpeta si no existe
-                }
-
-                File outputFile = new File(outputDir, "excel.xlsx");
-                FileOutputStream out = new FileOutputStream(outputFile);
-
-                workbookk.write(out);
-                out.close();
-                workbookk.close();
-
-                System.out.println("Archivo generado en: " + outputFile.getAbsolutePath());
-                sender.shutdown();
+            MUX mux = NameRegistrar.get(MUX_NAME);
+            if (!mux.isConnected()) {
+                throw new IllegalStateException("El MUX no está conectado.");
             }
 
-            log.info("Fin procesamiento:"+ Timestamp.valueOf(LocalDateTime.now()));
-            //Terminamos con el proceso
+            for (int i = 0; i < workbookInput.getNumberOfSheets(); i++) {
+                processSheet(workbookInput.getSheetAt(i), workbookOutput, mux);
+            }
+
+            File outputFile = new File(outputDir, OUTPUT_FILE);
+            try (FileOutputStream out = new FileOutputStream(outputFile)) {
+                workbookOutput.write(out);
+            }
+
+            log.info("Fin procesamiento: " + Timestamp.valueOf(LocalDateTime.now()));
             getServer().shutdown();
 
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (ISOException e) {
-            throw new RuntimeException(e);
-        } catch (ParseException e) {
-            throw new RuntimeException(e);
-        } catch (NameRegistrar.NotFoundException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            log.error("Error durante el procesamiento: " + e.getMessage(), e);
         }
-
-
     }
 
+    private void processSheet(Sheet sheet, Workbook workbookResponse, MUX mux)
+            throws ISOException, ParseException {
+
+        Map<String, Case> casesMap = readCases(sheet);
+        if (casesMap.isEmpty()) return;
+
+        Sheet sheetResponse = workbookResponse.createSheet(sheet.getSheetName());
+        writeHeader(sheetResponse);
+
+        GenericPackager packager = new GenericPackager();
+        //Patron template
+        VisaOrigin visaOrigin = new VisaOrigin(); // Esto deberia ser dinamico
+        List<ISOMsg> transactions = new ArrayList<>();
+
+        for (Case c : casesMap.values()) {
+            transactions.add(visaOrigin.createISOMsg(c, packager));
+        }
+
+        IsoBulkSender sender = new IsoBulkSender(30,mux);
+        List<CompletableFuture<ISOMsg>> futures = sender.sendAllAsync(transactions);
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+        int rowIndex = 1;
+        for (Map.Entry<String, Case> entry : casesMap.entrySet()) {
+            try {
+                ISOMsg resp = futures.get(rowIndex - 1).get();
+                writeResultRow(sheetResponse, rowIndex++, entry.getValue(), resp);
+            } catch (Exception e) {
+                log.warn("Error en caso " + entry.getKey() + ": " + e.getMessage());
+            }
+        }
+
+        sender.shutdown();
+    }
+
+    private Map<String, Case> readCases(Sheet sheet) {
+        Map<String, Case> casesMap = new LinkedHashMap<>();
+
+        for (Row row : sheet) {
+            if (row.getRowNum() == 0) continue; // omitimos encabezado
+            Case c = getACase(row);
+            if (c.getCaseName() != null && !c.getCaseName().isEmpty()) {
+                casesMap.put(c.getCaseName(), c);
+            }
+        }
+
+        return casesMap;
+    }
+
+    private void writeHeader(Sheet sheet) {
+        Row header = sheet.createRow(0);
+        header.createCell(0).setCellValue("Casos");
+        header.createCell(1).setCellValue("Tipo");
+        header.createCell(2).setCellValue("Condicion tarjeta");
+        header.createCell(3).setCellValue("Resultado esperado");
+        header.createCell(4).setCellValue("Resultado");
+    }
+
+    private void writeResultRow(Sheet sheet, int index, Case c, ISOMsg response) throws ISOException {
+        Row row = sheet.createRow(index);
+        row.createCell(0).setCellValue(c.getCaseName());
+        row.createCell(1).setCellValue(c.getTipo());
+        row.createCell(2).setCellValue(c.getCondicionTarjeta());
+        row.createCell(3).setCellValue(c.getResultadoEsperado());
+
+        String result = "000".equals(response.getString(39)) ? "Aprobada" : "Denegada";
+        row.createCell(4).setCellValue(result);
+
+        System.out.println("Respuesta " + c.getCaseName() + " -> MTI=" + response.getMTI() +
+                " RC=" + response.getString(39));
+    }
 
     @NotNull
     private static Case getACase(Row row) {
@@ -193,4 +190,3 @@ public class Script extends org.jpos.q2.QBeanSupport implements Runnable{
         return cases;
     }
 }
-
