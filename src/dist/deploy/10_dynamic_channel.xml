@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+
+<channel-adaptor name='dynamic-channel'
+                 class="org.jpos.q2.iso.ChannelAdaptor" logger="Q2">
+    <channel class="org.jpos.iso.channel.@channel@"  logger="Q2"
+             packager="org.jpos.iso.packager.@packager_channel@" realm="DYNAMIC-CHANNEL">
+        <property name="packager-config" value="cfg/@iso_version@.xml" />
+        <property name="host" value="@10_channel_host@" />
+        <property name="port" value="@10_channel_port@" />
+    </channel>
+    <in>dynamic-channel-send</in>
+    <out>dynamic-channel-receive</out>
+    <reconnect-delay>10000</reconnect-delay>
+</channel-adaptor>

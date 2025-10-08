@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema id='A1'>
+ <field id="key-scheme" type="K" length="1">T</field>
+ <field id="key" type="A" length="48" />
+ <field id="key-check" type="A" length="6" />
+</schema>
+

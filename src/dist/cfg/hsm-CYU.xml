@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema id='CYU'>
+    <field id="cvk"                type="A" length="32" />
+    <field id="cvv"                type="N" length="3"/>
+    <field id="pan"                type="N" length="16"/>
+    <field id="delimiter"          type="K" length="1" >;</field>" />
+    <field id="exp"                type="N" length="4"/>
+    <field id="service-code"       type="N" length="3"/>
+</schema>

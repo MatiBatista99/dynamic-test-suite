@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema id='M1'>
+    <field id="message-length" type="A" length="4" />
+    <field id="encrypted-message" type="A" length="16" />
+</schema>
+

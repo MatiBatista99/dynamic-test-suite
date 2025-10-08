@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema id='G0'>
+ <field id="bdk" type="A" length="32" />
+ <field id="zpk-type" type="A" length="1" />
+ <field id="zpk" type="A" length="32" />
+ <field id="ksn-descriptor" type="A" length="3" />
+ <field id="ksn" type="A" length="16" />
+ <field id="pinblk" type="A" length="16" />
+ <field id="source-pinblk-format" type="A" length="2" />
+ <field id="destination-pinblk-format" type="A" length="2" />
+ <field id="account-number" type="A" length="12" />
+</schema>
+

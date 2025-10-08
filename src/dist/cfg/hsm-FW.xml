@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema id='FW'>
+    <field id="key-type"                  type="N" length="3" />
+    <field id="pvk"                       type="A" length="33" />
+    <field id="pinblock"                  type="A" length="16" />
+    <field id="pinblock-format"           type="A" length="16" />
+    <field id="account-number"            type="N" length="2" />
+    <field id="pvki"                      type="N" length="1" />
+</schema>

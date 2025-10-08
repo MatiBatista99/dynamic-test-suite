@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema id='HD'>
+ <field id="tpk-under-tmk"      type="A" length="33" />
+ <field id="tpk-under-lmk"      type="A" length="33" />
+</schema>

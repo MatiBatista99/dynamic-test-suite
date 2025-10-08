@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema id='M0'>
+ <field id="mode" type="N" length="2" />
+ <field id="input-format" type="N" length="1" />
+ <field id="output-format" type="N" length="1" />
+ <field id="key-type" type="A" length="3" />
+ <field id="key" type="A" length="32" />
+ <field id="ksn-descriptor" type="A" length="3" />
+ <field id="ksn" type="ADS" length="20" />
+ <field id="length" type="A" length="4" />
+ <field id="data" type="ADS" length="96" />
+</schema>
+
+

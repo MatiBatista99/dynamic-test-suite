@@ -1,0 +1,40 @@
+package ar.cabal.jpos;
+
+import java.math.BigDecimal;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.StringTokenizer;
+import org.jpos.core.Configuration;
+import org.jpos.core.ConfigurationException;
+import org.jpos.core.Configurable;
+import org.jpos.iso.ISOAmount;
+import org.jpos.iso.ISOChannel;
+import org.jpos.iso.ISODate;
+import org.jpos.iso.ISOException;
+import org.jpos.iso.ISOFilter;
+import org.jpos.iso.ISOMsg;
+import org.jpos.iso.ISOUtil;
+import org.jpos.util.LogEvent;
+import org.jpos.iso.ISOHeader;
+
+
+        ISOMsg m = (ISOMsg) message.clone();
+        evt.addMessage("--- original message (ds_infinitus_outgoing_fix) --");
+
+        try {
+	    ISOHeader hdr = null;
+            m.setHeader(hdr);
+        if (!"2800".equals(m.getMTI()) && !"0800".equals(m.getMTI()) && message.isRequest()){
+            if ("2200".equals(m.getMTI()) && "81".equals(m.getString(3).substring(0,2))){
+                m.set(42, cfg.get("pcode_" + m.getString(3).substring(0,2), ISOUtil.zeropad(message.getString(42), 11)) + ISOUtil.strpad("", 4));
+            } else {  
+                m.set(42, cfg.get("atm_" + message.getString(60).substring(0, 4), ISOUtil.zeropad(message.getString(42), 11)) + ISOUtil.strpad("", 4));
+                m.set(114, ISOUtil.strpad(message.getString(114).substring(0,4) + cfg.get("red_" + message.getString(60).substring(0, 4), message.getString(114).substring(4,8)) + message.getString(114).substring(8,11), 11));
+            }
+        }
+        } catch (Exception e) {
+            evt.addMessage("--- ds_infinitus_outgoing_fix ---");
+            evt.addMessage(e);
+        }
+        return m;

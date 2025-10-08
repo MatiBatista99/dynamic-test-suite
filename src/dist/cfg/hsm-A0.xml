@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema id='A0'>
+ <field id="mode"       type="K" length="1">1</field>
+ <field id="key-type"   type="K" length="3">001</field>
+ <field id="key-scheme" type="K" length="1">U</field>
+ <field id="zmk"        type="A" length="32" />
+ <field id="zmk-scheme" type="K" length="1">U</field>
+</schema>
+

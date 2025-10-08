@@ -1,0 +1,36 @@
+plugins {
+    id "org.sonarqube" version "3.5.0.2730"
+    id 'java'
+    id "org.jetbrains.kotlin.jvm" version "2.0.21"
+    id 'maven-publish'
+    id 'idea'
+    id 'eclipse'
+    id 'war'
+}
+
+
+group = 'org.jpos.template'
+version = '2.1.8-SNAPSHOT'
+sourceCompatibility = 11
+targetCompatibility = 11
+
+repositories {
+    mavenCentral()
+    maven { url 'https://jpos.org/maven' }
+    mavenLocal()
+}
+
+dependencies {
+    implementation 'org.jpos:jpos:2.1.8-SNAPSHOT'
+    // https://mvnrepository.com/artifact/org.apache.poi/poi
+    implementation 'org.apache.poi:poi-ooxml:5.2.5'
+    providedCompile "org.projectlombok:lombok:1.18.30"
+    annotationProcessor "org.projectlombok:lombok:1.18.30"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.annotationProcessorPath = configurations.annotationProcessor
+}
+
+apply from: 'jpos-app.gradle'
+

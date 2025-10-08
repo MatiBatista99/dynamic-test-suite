@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema id='CJ'>
+ <field id="pin-length" type="N" length="2" />
+ <field id="pinblk" type="A" length="16" />
+</schema>
+

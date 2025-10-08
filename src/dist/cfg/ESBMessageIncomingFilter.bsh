@@ -1,0 +1,26 @@
+package ar.cabal.jpos;
+
+import org.jpos.iso.ISOException;
+import org.jpos.iso.ISOFilter;
+import org.jpos.iso.ISOFilter.VetoException;
+import org.jpos.iso.ISOMsg;
+
+import org.jpos.util.LogEvent;
+
+        ISOMsg m = (ISOMsg) message.clone();
+        evt.addMessage("--- bsh filtered message (ss_esb_incoming) --");
+        evt.addMessage(m);
+        try {
+            //Este filtro solo agrega un mensaje en caso de que el codigo de error sea 54
+            if (message.hasField(39) && "1815".equals(message.getString(39))) {
+                m.set(63, ". COD.DE SEGURIDAD   INVALIDO           ");
+            }
+            if (message.hasField(39) && "0000".equals(message.getString(39))) {
+                m.set(63, ".  CABAL DEBITO                         ");
+            }
+        } catch (Exception e) {
+            evt.addMessage("--- ss_esb_incoming ---");
+            evt.addMessage(e);
+            throw new ISOFilter.VetoException(e.getMessage());
+        }
+        message = m;

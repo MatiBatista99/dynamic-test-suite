@@ -1,0 +1,30 @@
+package ar.cabal.jpos;
+
+import org.jpos.transaction.Context;
+import org.jpos.ee.TranLog;
+import org.jpos.ee.Destination;
+import org.jpos.iso.ISOException;
+import org.jpos.ee.DB;
+import org.jpos.ee.ActionCode;
+import org.jpos.iso.ISOException;
+import java.math.BigDecimal;
+import org.jpos.util.LogEvent;    
+
+    public synchronized DB getDB (Context ctx) {
+        DB db = (DB) ctx.get (DB);
+        if (db == null) {
+            ctx.put (DB, db = new DB ());
+        }
+        return db;
+    }
+
+        Destination dest = (Destination) ctx.get(DS);
+        String ds = dest.getDestinationStation();
+        TranLog tl = (TranLog) ctx.get(TRANLOG);
+        
+        if ("SIDECREER".equals(ds) && 6 == tl.getPlanCuota() && BigDecimal.valueOf(12).equals(tl.getCuotas())){
+        logger.info("ABORTANDO1: " + ABORTED);
+            CabalUtil.setRejectionReason(ctx, TRANSACTION_NOT_ALLOWED, getDB(ctx), new LogEvent(this, "RejectionReason"), false);
+            return ABORTED;
+        }
+        return PREPARED | NO_JOIN;

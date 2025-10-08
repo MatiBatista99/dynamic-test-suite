@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema id='FE'>
+ <field id="zmk-type"           type="A" length="1"  />
+ <field id="zmk"                type="A" length="32" />
+ <field id="tpk-type"           type="A" length="1"  />
+ <field id="tpk"                type="A" length="48" />
+ <field id="delimiter"          type="K" length="1" >;</field>
+ <field id="tpk-type-under-zmk" type="A" length="1"  />
+</schema>
+

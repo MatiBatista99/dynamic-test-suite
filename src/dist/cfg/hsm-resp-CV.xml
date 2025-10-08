@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema id='CV'>
+    <field id="pvv"  type="A" length="4" />
+</schema>
+

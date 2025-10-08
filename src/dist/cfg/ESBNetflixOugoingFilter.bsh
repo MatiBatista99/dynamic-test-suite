@@ -1,0 +1,38 @@
+package ar.cabal.jpos;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+import java.util.StringTokenizer;
+import org.jpos.core.Configuration;
+import org.jpos.core.ConfigurationException;
+import org.jpos.core.Configurable;
+import org.jpos.iso.ISOAmount;
+import org.jpos.iso.ISOChannel;
+import org.jpos.iso.ISODate;
+import org.jpos.iso.ISOException;
+import org.jpos.iso.ISOFilter;
+import org.jpos.iso.ISOMsg;
+import org.jpos.iso.ISOUtil;
+import org.jpos.space.Space;
+import ar.cabal.jpos.space.SpaceFactory;
+import org.jpos.util.Log;
+import org.jpos.util.LogEvent;
+/*
+ * @author mdiz
+ */
+
+    ISOMsg m = (ISOMsg) message.clone();
+    evt.addMessage("--- original message (ESBNetflixOugoingFilter) ---");
+    try {
+        if (message.getString(22).equals("0081") && !message.hasField(35)) {
+            m.set(35, message.getString(2) + "=" + message.getString(14)); // Seteo el PAN = fecha de venc
+        }
+    } catch (Exception e) {
+        evt.addMessage("--- original message (ESBNetflixOugoingFilter) ---");
+        evt.addMessage(e);
+    }
+    return m;
+
+    

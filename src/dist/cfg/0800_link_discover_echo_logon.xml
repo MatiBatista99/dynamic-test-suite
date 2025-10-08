@@ -1,0 +1,8 @@
+<isomsg>
+    <field id="0" value="0800"/>
+    <field id="3" value="000000"/>
+    <field id="7" value="$date"/> <!-- MMddhhmmss -->
+    <field id="11" value="$" />
+    <field id="48" value="6011002122S000322" />
+    <field id="70" value="001"/>
+</isomsg>

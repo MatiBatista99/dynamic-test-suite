@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema id='KB'>
+ <field id="key-check"          type="A" length="6" />
+ <field id="key-extended-check" type="A" length="10" />
+</schema>
+

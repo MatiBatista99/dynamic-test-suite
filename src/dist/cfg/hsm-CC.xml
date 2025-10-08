@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema id='CC'>
+ <field id="source-zpk" type="ADS" length="49" />
+ <field id="destination-zpk" type="ADS" length="49" />
+ <field id="max-pin-len" type="K" length="2">12</field>
+ <field id="pinblk" type="A" length="16" />
+ <field id="source-pinblk-format" type="N" length="2" />
+ <field id="destination-pinblk-format" type="N" length="2" />
+ <field id="account-number" type="A" length="12" />
+</schema>
+

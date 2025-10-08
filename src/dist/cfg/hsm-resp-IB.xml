@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema id='IB'>
+ <field id="zpk-under-zmk-type" type="A" length="1"  />
+ <field id="zpk-under-zmk"      type="A" length="32"  />
+ <field id="zpk-under-lmk-type" type="A" length="1"  />
+ <field id="zpk-under-lmk"      type="A" length="32" />
+ <field id="key-check"          type="A" length="6" />
+</schema>
+
