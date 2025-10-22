@@ -1,6 +1,8 @@
-package ar.cabal;
+package ar.cabal.origins;
 
+import ar.cabal.dtos.Case;
 import org.jpos.iso.*;
+import org.jpos.iso.packager.GenericPackager;
 import org.jpos.space.Space;
 import org.jpos.space.SpaceFactory;
 import org.jpos.space.SpaceUtil;
@@ -11,20 +13,19 @@ import java.util.Date;
 public abstract class Origin {
 
 
-    public ISOMsg createISOMsg(Case c, ISOPackager isoPackager) throws ISOException, ParseException {
+    public ISOMsg createISOMsg(Case c,String mti) throws ISOException, ParseException {
         ISOMsg msg = new ISOMsg();
+        setPackager(msg);
         setStan(msg);
         setTerminalId(msg);
-        setPackager(msg,isoPackager);
-        setMtiAndCode(msg,c.getMti());
-        setModoIngreso(msg,c);
-        setCardInfo(msg,c);
+        setRrn(msg);
+        setMtiAndCode(msg, mti);
+        setEntryModeAndCardInfo(msg,c);
         setDate(msg);
         setAmountAndCurrency(msg,c);
         setComercioAndTerminal(msg,c);
         setDatosPrivados(msg,c);
-        setCustoms(msg);
-        setAppSequenceNumberAndCryptogram(msg);
+        setCustoms(msg,c);
         return msg;
     }
 
@@ -36,35 +37,31 @@ public abstract class Origin {
         isoMsg.set(11,stan);
     }
 
-    public void setTerminalId( ISOMsg isoMsg){
-        //TID lo mandamos random?
-        isoMsg.set(41,String.valueOf((int)(Math.random() * 90000000) + 10000000));
+    public abstract void setTerminalId( ISOMsg isoMsg);
+
+    public void setPackager(ISOMsg msg) throws ISOException {
+        msg.setPackager(new GenericPackager());
     }
 
-    public void setPackager(ISOMsg msg, ISOPackager packager){
-        msg.setPackager(packager);
-    }
+    public  abstract void setAdquirente(ISOMsg msg);
 
-
-    public  abstract void setModoIngreso(ISOMsg msg,Case c);
+    public  abstract void setPresentador(ISOMsg msg);
 
     public abstract void setMtiAndCode(ISOMsg msg,String mti) throws ISOException;
 
     public abstract void setComercioAndTerminal(ISOMsg msg, Case c) throws ISOException;
 
-    public abstract void setCardInfo(ISOMsg msg,Case c) throws ISOException, ParseException;
+    public abstract void setEntryModeAndCardInfo(ISOMsg msg,Case c) throws ParseException;
 
     public abstract void setAmountAndCurrency(ISOMsg msg, Case c) throws ISOException;
 
     public abstract void setDate(ISOMsg msg);
 
-    public abstract void setCustoms(ISOMsg msg);
+    public abstract void setCustoms(ISOMsg msg,Case c);
 
     public abstract void setDatosPrivados(ISOMsg msg, Case c);
 
-
-    public abstract void setAppSequenceNumberAndCryptogram(ISOMsg msg); // SOlo para CTL o CTLS.
-
+    public abstract void setRrn(ISOMsg msg);
 
     protected String getFormatDate(String format){
         Date d=new Date();

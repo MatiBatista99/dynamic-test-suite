@@ -11,8 +11,8 @@ plugins {
 
 group = 'org.jpos.template'
 version = '2.1.8-SNAPSHOT'
-sourceCompatibility = 11
-targetCompatibility = 11
+sourceCompatibility = 17
+targetCompatibility = 17
 
 repositories {
     mavenCentral()
@@ -26,6 +26,11 @@ dependencies {
     implementation 'org.apache.poi:poi-ooxml:5.2.5'
     providedCompile "org.projectlombok:lombok:1.18.30"
     annotationProcessor "org.projectlombok:lombok:1.18.30"
+    providedCompile 'com.oracle.database.jdbc:ojdbc10:19.16.0.0'
+    implementation 'org.jpos.ee:jposee-dbsupport:2.2.8'
+    // https://mvnrepository.com/artifact/jcifs/jcifs
+    implementation 'eu.agno3.jcifs:jcifs-ng:2.1.7'
+
 }
 
 tasks.withType(JavaCompile).configureEach {

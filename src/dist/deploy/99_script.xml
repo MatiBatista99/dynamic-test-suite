@@ -1,2 +1,3 @@
 <qbean name='Script' logger='Q2' realm='script' class='ar.cabal.Script'>
+    <property name='origin' value='VISA'/>
 </qbean>

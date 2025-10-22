@@ -4,6 +4,6 @@
     <in>dynamic-channel-receive</in>
     <out>dynamic-channel-send</out>
     <timeout>10000</timeout>
-    <key>11, 37</key>
+    <key>2, 11</key>
     <ready>dynamic-channel.ready</ready>
 </mux>

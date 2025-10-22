@@ -2,11 +2,17 @@ package ar.cabal;
 
 import java.util.*;
 import java.util.concurrent.*;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.jpos.iso.ISOMsg;
 import org.jpos.iso.MUX;
+import org.jpos.util.Log;
 import org.jpos.util.NameRegistrar;
 
-public class IsoBulkSender {
+@EqualsAndHashCode(callSuper = true)
+@Data
+public class IsoBulkSender extends Log {
 
     private final ExecutorService executor;
     private MUX mux;
@@ -17,13 +23,8 @@ public class IsoBulkSender {
         this.mux=mux;
     }
 
-    public List<CompletableFuture<ISOMsg>> sendAllAsync(List<ISOMsg> transactions) {
-        List<CompletableFuture<ISOMsg>> futures = new ArrayList<>();
-        for (ISOMsg tx : transactions) {
-            CompletableFuture<ISOMsg> future = CompletableFuture.supplyAsync(() -> sendTransaction(tx), executor);
-            futures.add(future);
-        }
-        return futures;
+    public ISOMsg send(ISOMsg tx) {
+        return sendTransaction(tx);
     }
 
     private ISOMsg sendTransaction(ISOMsg tx) {

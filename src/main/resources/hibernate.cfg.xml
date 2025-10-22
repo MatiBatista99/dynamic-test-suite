@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+
+
+<hibernate-configuration>
+    <session-factory>
+        <!-- _hibernate.cfg.properties,v -->
+        <property name="dialect">org.hibernate.dialect.Oracle10gDialect</property>
+        <property name="connection.driver_class">oracle.jdbc.driver.OracleDriver</property>
+        <property name="connection.url">jdbc:oracle:thin:@@dbhost@:1521@SID@</property>
+        <property name="connection.username">@dbuser@</property>
+        <property name="connection.password">@dbpass@</property>
+        <property name="connection.schema">@dbname@</property>
+
+
+        <!-- Generación automática del esquema -->
+        <property name="hbm2ddl.auto">validate</property>
+
+        <!-- Configuración adicional -->
+        <property name="hibernate.generate_statistics">false</property>
+        <property name="hibernate.globally_quoted_identifiers">true</property>
+
+        <!-- Mapear clases -->
+        <!-- <mapping class=""/> -->
+    </session-factory>
+</hibernate-configuration>
