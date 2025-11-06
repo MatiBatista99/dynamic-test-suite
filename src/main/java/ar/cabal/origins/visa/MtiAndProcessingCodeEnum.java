@@ -9,7 +9,7 @@ import java.util.Map;
 
 @Getter
 
-public enum ProcessingCodeEnum {
+public enum MtiAndProcessingCodeEnum {
 
     // Autorizacion
     AUTORIZACION_COMPRA("0200.00","1100", "000000", "Compra o Compra con Extracash"),
@@ -27,15 +27,15 @@ public enum ProcessingCodeEnum {
     private final String code;
     private final String description;
 
-    private static final Map<String, ProcessingCodeEnum> LOOKUP_BY_KEY_AND_MTI = new HashMap<>();
+    private static final Map<String, MtiAndProcessingCodeEnum> LOOKUP_BY_KEY_AND_MTI = new HashMap<>();
 
     static {
-        for (ProcessingCodeEnum pc : values()) {
+        for (MtiAndProcessingCodeEnum pc : values()) {
             LOOKUP_BY_KEY_AND_MTI.put(pc.getOriginalMti(), pc);
         }
     }
 
-    ProcessingCodeEnum(String originalMti, String mti, String code, String description) {
+    MtiAndProcessingCodeEnum(String originalMti, String mti, String code, String description) {
         this.mti=mti;
         this.originalMti = originalMti;
         this.code = code;
@@ -46,7 +46,7 @@ public enum ProcessingCodeEnum {
     /**
      * Busca un código de proceso a partir del mti
      */
-    public static ProcessingCodeEnum fromKey(String originalMti) {
+    public static MtiAndProcessingCodeEnum fromKey(String originalMti) {
 
         return LOOKUP_BY_KEY_AND_MTI.get(originalMti);
     }

@@ -4,7 +4,6 @@ import ar.cabal.dtos.Case;
 import ar.cabal.dtos.CaseGroup;
 import ar.cabal.dtos.CodeMappingDto;
 import ar.cabal.origins.Origin;
-import ar.cabal.origins.OriginFactory;
 import jcifs.CIFSContext;
 import jcifs.CIFSException;
 import jcifs.config.PropertyConfiguration;
@@ -13,18 +12,13 @@ import jcifs.smb.*;
 import lombok.Data;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.apache.xmlbeans.impl.xb.ltgfmt.Code;
 import org.hibernate.Session;
 import org.jpos.core.Configuration;
-import org.jpos.core.ConfigurationException;
 import org.jpos.ee.DB;
 import org.jpos.iso.*;
 import org.jpos.q2.QBeanSupport;
 import org.jpos.util.NameRegistrar;
 
-import java.io.*;
-import java.math.BigDecimal;
-import java.net.MalformedURLException;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -36,30 +30,32 @@ import java.util.stream.Collectors;
 public class Script extends QBeanSupport implements Runnable {
 
     private static final String MUX_NAME = "mux.dynamic-channel-mux";
-    private static final String INPUT_FILE = "/visa_test_suite_1.xlsx";
-    private static final String OUTPUT_DIR = "test-cases";
-    private static final String OUTPUT_FILE = "resultados.xlsx";
-    private static final String serverAddress="vdicet005";
-    private static final String sharenameIn="file-server/in";
-    private static final String sharenameOut="file-server/out";
     private  DB db;
-    private String origin;
+    private OriginHandler origin;
+    private String fileServer;
 
     private Map<String, CodeMappingDto> codeMappings;
 
     private static final int THREAD_POOL_SIZE = Math.max(4, Runtime.getRuntime().availableProcessors() * 2);
 
     @Override
-    public void setConfiguration(Configuration var1) throws ConfigurationException{
-        this.origin=var1.get("origin");
+    public void setConfiguration(Configuration cfg){
+        this.fileServer=cfg.get("fileServer");
     }
 
     @Override
     protected void startService() {
-        this.db = new DB();
-        this.codeMappings = getCodeMappings(db.open(), origin);
-        log.info("Loaded " + codeMappings.size() + " action codes.");
-        new Thread(this, "VisaScriptRunner").start();
+        try {
+            this.origin = OriginHandlerFactory.getHandler(EnvironmentConfig.getOrigin(), fileServer);
+            this.db = new DB();
+            db.open();
+            //this.codeMappings = getCodeMappings(db.open(), origin);
+            //log.info("Loaded " + codeMappings.size() + " action codes.");
+            new Thread(this, "VisaScriptRunner").start();
+        }catch (Exception e){
+            log.error(e);
+            getServer().shutdown();
+        }
     }
 
     public Map<String, CodeMappingDto> getCodeMappings(Session session, String origen) {
@@ -87,7 +83,10 @@ public class Script extends QBeanSupport implements Runnable {
         ));
     }
 
+
+
     //Reversos en caso de visa
+
     public void setIrcAndDescription(ISOMsg isoMsgResponse, Row row) throws ISOException {
         String sql = """
         SELECT tl.CODRESPUESTAINTERNO AS irc,
@@ -120,59 +119,48 @@ public class Script extends QBeanSupport implements Runnable {
     }
 
 
+    public void setIrcAndSdi(ISOMsg isoMsgResponse, Row row) throws ISOException {
+        String sql = """
+        SELECT 
+            tl.CODRESPUESTAINTERNO AS irc,
+            ac1.description AS irc_desc
+        FROM tranlog tl
+        LEFT JOIN action_codes ac1 ON ac1.code = TO_NUMBER(tl.CODRESPUESTAINTERNO)
+        WHERE tl.codigoMoneda = :currencyCode
+          AND tl.ss_stan = :stan
+          AND tl.ss_rrn = :rrn
+          AND tl.idTerminal = :tid
+          AND tl.pan = :pan
+        ORDER BY tl.id DESC
+        FETCH FIRST 1 ROW ONLY
+    """;
+
+        Object[] result = (Object[]) db.session().createNativeQuery(sql)
+                .setParameter("currencyCode", isoMsgResponse.getString(49))
+                .setParameter("stan", ISOUtil.zeropad(isoMsgResponse.getString(11), 12))
+                .setParameter("rrn", isoMsgResponse.getString(37))
+                .setParameter("tid", isoMsgResponse.getString(41))
+                .setParameter("pan", isoMsgResponse.getString(2))
+                .uniqueResult();
+
+        if (result != null) {
+            // IRC y descripción
+            row.createCell(5).setCellValue(result[0] != null ? result[0].toString() : "");
+            row.createCell(6).setCellValue(result[1] != null ? result[1].toString() : "");
+
+        }
+    }
 
 
     private CIFSContext getContextFileServer() throws CIFSException {
-            Properties props = new Properties();
-            props.put("jcifs.smb.client.disableSpnegoIntegrity", "true");
-            props.put("jcifs.smb.client.minVersion", "SMB202");
-            props.put("jcifs.smb.client.maxVersion", "SMB311");
+        Properties props = new Properties();
+        props.put("jcifs.smb.client.disableSpnegoIntegrity", "true");
+        props.put("jcifs.smb.client.minVersion", "SMB202");
+        props.put("jcifs.smb.client.maxVersion", "SMB311");
 
-            return new BaseContext(new PropertyConfiguration(props))
-                    .withCredentials(new jcifs.smb.NtlmPasswordAuthenticator("", "peld-mbatista", "Riverelmacapo920..."));
+        return new BaseContext(new PropertyConfiguration(props))
+                .withCredentials(new jcifs.smb.NtlmPasswordAuthenticator("", "peld-mbatista", "Cabal2025"));
     }
-
-    private SmbFile getFileByOrigin(CIFSContext context) throws MalformedURLException {
-        String url= "smb://" + serverAddress+ "/" + sharenameIn + "/";
-        switch (origin){
-            case "VISA":
-                url=url+"visa_test_suite.xlsx";
-                break;
-            default:
-                break;
-        }
-
-        return new SmbFile(url,context);
-    }
-
-    private SmbFile createFileByOrigin(CIFSContext context) throws MalformedURLException {
-        String url= "smb://" + serverAddress+ "/" + sharenameOut + "/";
-        switch (origin){
-            case "VISA":
-                url=url+"visa_test_suite_resultados.xlsx";
-                break;
-            default:
-                break;
-        }
-
-        return new SmbFile(url,context);
-    }
-
-
-    private void saveFileByOrigin(Workbook wb, CIFSContext context)
-            throws MalformedURLException, SmbException {
-        SmbFile smbFileOut = createFileByOrigin(context);
-
-        try (SmbFileOutputStream smbfos = new SmbFileOutputStream(smbFileOut)) {
-            // Escribir el Workbook directamente al stream remoto
-            wb.write(smbfos);
-            smbfos.flush();
-            System.out.println("Archivo Excel guardado correctamente en el file server: " + smbFileOut.getPath());
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-    }
-
 
 
     @Override
@@ -182,22 +170,19 @@ public class Script extends QBeanSupport implements Runnable {
         try {
             CIFSContext context = getContextFileServer();
 
-            SmbFile file = getFileByOrigin(context);
+            SmbFile file = origin.getInputFile(context);
 
             try (SmbFileInputStream is = new SmbFileInputStream(file);
                  Workbook workbookInput = new XSSFWorkbook(is);
                  Workbook workbookOutput = new XSSFWorkbook()) {
-
-                File outputDir = new File(OUTPUT_DIR);
-                if (!outputDir.exists() && !outputDir.mkdirs())
-                    throw new IOException("Unable to create output dir: " + OUTPUT_DIR);
 
                 MUX mux = NameRegistrar.get(MUX_NAME);
                 if (!mux.isConnected())
                     throw new IllegalStateException("MUX is not connected.");
 
                 ExecutorService executor = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
-                Origin origin = OriginFactory.getOrigin("VISA");
+                //Origin origin = OriginFactory.getOrigin("VISA");
+
                 IsoBulkSender sender = new IsoBulkSender(THREAD_POOL_SIZE, mux);
 
                 List<CompletableFuture<Void>> futures = new ArrayList<>();
@@ -208,7 +193,7 @@ public class Script extends QBeanSupport implements Runnable {
                     futures.add(CompletableFuture.runAsync(() -> {
                         try (XSSFWorkbook localWb = new XSSFWorkbook()) {
                             // Procesa la hoja en su workbook temporal
-                            processSheet(sheet, localWb, origin, sender);
+                            processSheet(sheet, localWb, origin.getOriginTemplate(), sender);
 
                             // Una vez procesada, copia las hojas al workbook principal
                             synchronized (workbookOutput) {
@@ -225,7 +210,7 @@ public class Script extends QBeanSupport implements Runnable {
                 CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
 
-               saveFileByOrigin(workbookOutput,context);
+               origin.saveOutputFile(workbookOutput,context);
 
                 sender.shutdown();
                 executor.shutdown();
@@ -295,64 +280,6 @@ public class Script extends QBeanSupport implements Runnable {
         }
     }
 
-
-/*
-    private void processSheet(Sheet sheet, Workbook workbookResponse,
-                              Origin origin, ISOPackager packager,
-                              IsoBulkSender sender) throws ISOException {
-
-        List<CaseGroup> groups = readCaseGroups(sheet);
-        if (groups.isEmpty()) return;
-
-        Sheet sheetResponse = workbookResponse.createSheet(sheet.getSheetName());
-        writeHeader(sheetResponse);
-
-        ConcurrentLinkedQueue<ResultRecord> results = new ConcurrentLinkedQueue<>();
-        List<CompletableFuture<Void>> futures = new ArrayList<>();
-
-        for (int i = 0; i < groups.size(); i++) {
-            final int groupIndex = i;
-            CaseGroup group = groups.get(i);
-
-            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-                try {
-                    ISOMsg previousResponse = null;
-
-                    for (Case c : group.getCases()) {
-                        ISOMsg req = origin.createISOMsg(c);
-                        if (!"Compra".equalsIgnoreCase(c.getTipo()) && previousResponse != null) {
-                            req.set(37, previousResponse.getString(37));
-                            req.set(11, previousResponse.getString(11));
-                            req.set(41, previousResponse.getString(41));
-                        }
-                        ISOMsg resp = sender.send(req);
-                        //Seteamos original_rrn
-                        resp.set(37,req.getString(37));
-                        resp.set(41,req.getString(41));
-
-                        results.add(new ResultRecord(groupIndex, c, resp));
-                        previousResponse = resp;
-                    }
-                } catch (Exception e) {
-                    log.warn("Error in group " + group.getGroupName() + ": " + e.getMessage(), e);
-                }
-            });
-
-            futures.add(future);
-        }
-
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-
-        List<ResultRecord> sortedResults = results.stream()
-                .sorted(Comparator.comparingInt(ResultRecord::getIndex))
-                .collect(Collectors.toList());
-
-        int rowIndex = 1;
-        for (ResultRecord record : sortedResults) {
-            writeResultRow(sheetResponse, rowIndex++, record.getCaseData(), record.getResponse());
-        }
-    } */
-
     private void processSheet(Sheet sheet, Workbook workbookResponse,
                               Origin origin, IsoBulkSender sender) throws ISOException {
 
@@ -415,7 +342,7 @@ public class Script extends QBeanSupport implements Runnable {
     private void writeHeader(Sheet sheet) {
         Row header = sheet.createRow(0);
         String[] headers = {"Casos", "Tipo", "Condicion tarjeta", "Resultado esperado",
-                "RC", "IRC", "Descripcion error", "RRNN"};
+                "RC", "IRC", "Descripcion error","RRNN"};
         for (int i = 0; i < headers.length; i++)
             header.createCell(i).setCellValue(headers[i]);
     }
@@ -448,6 +375,8 @@ public class Script extends QBeanSupport implements Runnable {
         row.createCell(4).setCellValue(rc);
 
 
+        //En cso de procesmaiento online
+/*
         if (isoMsgResp.getMTI().contains("1110")) {
             CodeMappingDto cm = codeMappings.getOrDefault(rc, codeMappings.get("default"));
             row.createCell(5).setCellValue(cm.getCode());
@@ -459,6 +388,9 @@ public class Script extends QBeanSupport implements Runnable {
             row.createCell(5).setCellValue("-");
             row.createCell(6).setCellValue("-");
         }
+
+ */
+        setIrcAndSdi(isoMsgResp,row);
 
         row.createCell(7).setCellValue(isoMsgResp.getString(37));
     }
@@ -507,7 +439,7 @@ public class Script extends QBeanSupport implements Runnable {
     private static Case getCaseFromRow(Row row) {
         final String tipoStr = getString(row, 1);
         final String mtiStr = getString(row, 2);
-        final String resultadoStr = getString(row, 7);
+        final String resultadoStr = getString(row, 8);
 
         final String[] tipos = tipoStr.contains("+") ? tipoStr.split("\\+") : new String[]{tipoStr};
         final String[] mtis = mtiStr.contains("-") ? mtiStr.split("-") : new String[]{mtiStr};
@@ -530,10 +462,11 @@ public class Script extends QBeanSupport implements Runnable {
                 .condicionTarjeta(getString(row, 4))
                 .condicionDisponibleDeLaTarjetaCuenta(getString(row, 5))
                 .modalidadComercio(getString(row, 6))
-                .numComercio(getString(row, 11))
-                .tarjeta(getString(row, 8))
-                .cvv(getString(row, 9))
-                .fechaVencimiento(getString(row, 10))
+                .amount(getDouble(row,7))
+                .tarjeta(getString(row, 9))
+                .cvv(getString(row, 10))
+                .fechaVencimiento(getString(row, 11))
+                .numComercio(getString(row, 12))
                 .specificCases(specificCases)
                 .build();
     }
@@ -545,19 +478,18 @@ public class Script extends QBeanSupport implements Runnable {
         Cell cell = row.getCell(index);
         if (cell == null) return "";
         return cell.getCellType() == CellType.NUMERIC ?
-                String.valueOf((long) cell.getNumericCellValue()) :
+                String.valueOf((long)cell.getNumericCellValue()) :
                 cell.getStringCellValue();
     }
 
-
-
-    public static boolean isReverseResponse(ISOMsg message) throws ISOException {
-        return (message.getMTI().substring(1).equals("410") || message.getMTI().substring(1).equals("430") || message.getMTI().substring(1).equals("431"));
+    private static Double getDouble(Row row, int index) {
+        Cell cell = row.getCell(index);
+        if (cell == null) return 100.0;
+        return cell.getCellType() == CellType.NUMERIC ?
+                cell.getNumericCellValue():
+                100.00;
     }
 
-    public static boolean isAuthorizationReverse(ISOMsg message) throws ISOException {
-        return (message.getMTI().equals("1400") || message.getMTI().equals("1420") || message.getMTI().equals("1421"));
-    }
 
 
 }

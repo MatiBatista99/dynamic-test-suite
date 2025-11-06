@@ -2,6 +2,9 @@ package org.jpos.iso.channel;
 
 import java.io.*;
 import java.net.ServerSocket;
+
+import org.jpos.core.Configuration;
+import org.jpos.core.ConfigurationException;
 import org.jpos.iso.*;
 import org.jpos.util.*;
 
@@ -109,6 +112,13 @@ public class B24Channel extends BaseChannel {
         Logger.log (new LogEvent (this, "got-message-length", Integer.toString(l)));
         return l;
     }
+
+
+    /*
+    @Override
+    public void setConfiguration(Configuration cfg) throws ConfigurationException {
+
+    } */
     @Override
     protected void getMessageTrailler() throws IOException {
         // Logger.log (new LogEvent (this, "get-message-trailler"));

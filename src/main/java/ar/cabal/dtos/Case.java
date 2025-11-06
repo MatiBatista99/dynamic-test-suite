@@ -13,7 +13,7 @@ public class Case {
     private String condicionTarjeta;
     private String condicionDisponibleDeLaTarjetaCuenta;
     private String modalidadComercio;
-    private String resultado;
+    private Double amount;
     private String tarjeta;
     private String cvv;
     private String fechaVencimiento;

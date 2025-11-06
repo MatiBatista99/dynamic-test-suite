@@ -22,7 +22,6 @@
         <property name="hibernate.generate_statistics">false</property>
         <property name="hibernate.globally_quoted_identifiers">true</property>
 
-        <!-- Mapear clases -->
-        <!-- <mapping class=""/> -->
+
     </session-factory>
 </hibernate-configuration>

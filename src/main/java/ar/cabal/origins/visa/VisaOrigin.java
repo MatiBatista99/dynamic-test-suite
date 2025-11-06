@@ -8,8 +8,6 @@ import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class VisaOrigin extends Origin {
@@ -17,36 +15,15 @@ public class VisaOrigin extends Origin {
 
     @Override
     public void setMtiAndCode(ISOMsg m, String mti) throws ISOException {
-        System.out.println("MTI recibido: " + mti);
-        /*
-        // Mapear el MTI origen a MTI destino
-        Map<String, String> mtiMap = new HashMap<>();
-        mtiMap.put("0200.00", "1100"); // Compra online
-        mtiMap.put("0200.20", "1100"); // Compra con financiación
-        mtiMap.put("0220.02", "1100"); // Aviso de anulación de compra
-        mtiMap.put("0220.00", "1100"); // Aviso de compra
-        mtiMap.put("0420.00", "1420"); // Reverso de compra
-        mtiMap.put("0420.02", "1420"); // Reverso de anulación de compra
-        mtiMap.put("0420.20", "1420"); // Reverso de financiación
-
-        // Buscar el MTI destino
-        String mtiDestino = mtiMap.get(mti);
-        if (mtiDestino == null) {
-            throw new ISOException("MTI no mapeado: " + mti);
-        }
-
-        // Obtener el sufijo (por ejemplo ".00", ".02", etc.)
-        String tipo = mti.split("\\.")[1]; */
-
         // Buscar el código de proceso asociado
-        ProcessingCodeEnum procCode = ProcessingCodeEnum.fromKey(mti);
-        if (procCode == null) {
+        MtiAndProcessingCodeEnum mtiAndPcEnum = MtiAndProcessingCodeEnum.fromKey(mti);
+        if (mtiAndPcEnum == null) {
             throw new ISOException("Código de proceso no definido para: " + mti);
         }
 
         // Setear en el mensaje ISO
-        m.setMTI(procCode.getMti());
-        m.set(3, procCode.getCode()); // 6 dígitos exactos
+        m.setMTI(mtiAndPcEnum.getMti());
+        m.set(3, mtiAndPcEnum.getCode()); // 6 dígitos exactos
     }
 
 
@@ -89,7 +66,11 @@ public class VisaOrigin extends Origin {
         //Banda
         if(c.getModalidadComercio().equals("Mostrador")){
             msg.set(22,"M00101254001");
-            String pan= c.getTarjeta()+"D"+formattedDate+"000"+c.getCvv()+"0000000";
+            String serviceCode="000";
+            if(c.getTarjeta().equals("6502720014541281")){
+                serviceCode="999";
+            }
+            String pan= c.getTarjeta()+"D"+formattedDate+serviceCode+c.getCvv()+"0000000";
             msg.set(35,pan);
             //Manual
         }else if(c.getModalidadComercio().equals("Internet")){
@@ -107,7 +88,7 @@ public class VisaOrigin extends Origin {
         999 --> Puntos?
          */
         //Suponemos monto y moneda
-        msg.set(4,ISOUtil.zeropad(BigDecimal.valueOf(100L).unscaledValue().toString(), 12));
+        msg.set(4,ISOUtil.zeropad((String.valueOf(c.getAmount().longValue())+"00"), 12));
         msg.set(49,"032"); // Operatoria nacional, en principio en pesos
     }
 
