@@ -1,5 +1,8 @@
-package ar.cabal;
+package ar.cabal.origins;
 
+
+import ar.cabal.origins.posnet.PosnetOriginHandler;
+import ar.cabal.origins.visa.VisaOriginHandler;
 
 public class OriginHandlerFactory {
 
@@ -8,7 +11,8 @@ public class OriginHandlerFactory {
         switch (origin.toUpperCase()) {
             case "VISA":
                 return new VisaOriginHandler(fileServer);
-            //case "POSNET": ;
+            case "POSNET": ;
+                return new PosnetOriginHandler(fileServer);
             default:
                 throw new IllegalArgumentException("Origen no soportado: " + origin);
         }

@@ -1,20 +1,18 @@
 package ar.cabal.origins.visa;
 
-import lombok.Data;
 import lombok.Getter;
-import lombok.Setter;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Getter
 
-public enum MtiAndProcessingCodeEnum {
+public enum TypeOperationsVisa {
 
     // Autorizacion
     AUTORIZACION_COMPRA("0200.00","1100", "000000", "Compra o Compra con Extracash"),
     //En el excel aparece 0220.02 pero debe ser una autorizacion
-    AUTORIZACION_ANULACION("0220.02","1100", "220000", "Anulación de Compra"),
+    AUTORIZACION_ANULACION("0200.02","1100", "220000", "Anulación de Compra"),
     AUTORIZACION_DEVOLUCION("0200.20","1100", "200030", "Devolución de Compra"),
 
     // Reverso
@@ -27,15 +25,15 @@ public enum MtiAndProcessingCodeEnum {
     private final String code;
     private final String description;
 
-    private static final Map<String, MtiAndProcessingCodeEnum> LOOKUP_BY_KEY_AND_MTI = new HashMap<>();
+    private static final Map<String, TypeOperationsVisa> LOOKUP_BY_KEY_AND_MTI = new HashMap<>();
 
     static {
-        for (MtiAndProcessingCodeEnum pc : values()) {
+        for (TypeOperationsVisa pc : values()) {
             LOOKUP_BY_KEY_AND_MTI.put(pc.getOriginalMti(), pc);
         }
     }
 
-    MtiAndProcessingCodeEnum(String originalMti, String mti, String code, String description) {
+    TypeOperationsVisa(String originalMti, String mti, String code, String description) {
         this.mti=mti;
         this.originalMti = originalMti;
         this.code = code;
@@ -46,7 +44,7 @@ public enum MtiAndProcessingCodeEnum {
     /**
      * Busca un código de proceso a partir del mti
      */
-    public static MtiAndProcessingCodeEnum fromKey(String originalMti) {
+    public static TypeOperationsVisa fromKey(String originalMti) {
 
         return LOOKUP_BY_KEY_AND_MTI.get(originalMti);
     }

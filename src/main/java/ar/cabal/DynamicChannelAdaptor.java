@@ -78,7 +78,7 @@ public class DynamicChannelAdaptor extends ChannelAdaptor {
                     "org.jpos.iso.channel.B24Channel",
                     "org.jpos.iso.packager.GenericPackager",
                     "cfg/iso87ascii_posnet_dobleBitmap.xml",
-                    "11750"
+                    "10750"
             );
             default -> throw new ConfigurationException("Unsupported origin: " + origin);
         };

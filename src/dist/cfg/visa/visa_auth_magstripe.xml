@@ -1,0 +1,22 @@
+<isomsg>
+    <field id="0" value="!MTI"/>
+    <field id="3" value="!PCODE"/>
+    <field id='4' value='!AMOUNTTRN'/>
+    <field id='11' value='!STAN'/>
+    <field id='12' value='!TRANSMISSION_DATE'/>
+    <field id="18" value="7299"/>
+    <field id="22" value="!ENTRYMODE"/>
+    <field id="23" value="004"/>
+    <field id="26" value="5947"/>
+    <field id='32' value='06544003' />
+    <field id='33' value='06028000' />
+    <field id="35" value="!TRACK2"/>
+    <field id="37" value="!RRN"/>
+    <field id='41' value='!TID'/>
+    <field id='42' value='!MID'/>
+    <field id="43" value="SDSAFASDFS HERASPARANA       AR"/>
+    <field id="48" value="!CAMPO48"/>
+    <field id="49" value="032"/>
+    <field id="53" value="2000000001000000"/>
+    <field id="64" value="12345678" type="binary"/>
+</isomsg>

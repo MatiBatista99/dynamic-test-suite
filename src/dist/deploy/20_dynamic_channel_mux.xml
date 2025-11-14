@@ -3,7 +3,5 @@
 <mux class="org.jpos.q2.iso.QMUX" logger="Q2" name="dynamic-channel-mux">
     <in>dynamic-channel-receive</in>
     <out>dynamic-channel-send</out>
-    <timeout>10000</timeout>
-    <key>2, 11</key>
     <ready>dynamic-channel.ready</ready>
 </mux>

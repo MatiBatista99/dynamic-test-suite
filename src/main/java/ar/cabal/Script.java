@@ -3,7 +3,8 @@ package ar.cabal;
 import ar.cabal.dtos.Case;
 import ar.cabal.dtos.CaseGroup;
 import ar.cabal.dtos.CodeMappingDto;
-import ar.cabal.origins.Origin;
+import ar.cabal.origins.OriginHandler;
+import ar.cabal.origins.OriginHandlerFactory;
 import jcifs.CIFSContext;
 import jcifs.CIFSException;
 import jcifs.config.PropertyConfiguration;
@@ -20,8 +21,6 @@ import org.jpos.q2.QBeanSupport;
 import org.jpos.util.NameRegistrar;
 
 import java.sql.Timestamp;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
@@ -40,13 +39,15 @@ public class Script extends QBeanSupport implements Runnable {
 
     @Override
     public void setConfiguration(Configuration cfg){
+
         this.fileServer=cfg.get("fileServer");
+
     }
 
     @Override
     protected void startService() {
         try {
-            this.origin = OriginHandlerFactory.getHandler(EnvironmentConfig.getOrigin(), fileServer);
+            this.origin = OriginHandlerFactory.getHandler("POSNET", fileServer); //CAMBIAR ESTO
             this.db = new DB();
             db.open();
             //this.codeMappings = getCodeMappings(db.open(), origin);
@@ -119,7 +120,7 @@ public class Script extends QBeanSupport implements Runnable {
     }
 
 
-    public void setIrcAndSdi(ISOMsg isoMsgResponse, Row row) throws ISOException {
+    public void setIrcAndSdi(ISOMsg isoMsgResponse, Row row, String mtiOrigen) throws ISOException {
         String sql = """
         SELECT 
             tl.CODRESPUESTAINTERNO AS irc,
@@ -130,7 +131,7 @@ public class Script extends QBeanSupport implements Runnable {
           AND tl.ss_stan = :stan
           AND tl.ss_rrn = :rrn
           AND tl.idTerminal = :tid
-          AND tl.pan = :pan
+         AND tl.codtransaccioninterno =:mti
         ORDER BY tl.id DESC
         FETCH FIRST 1 ROW ONLY
     """;
@@ -140,7 +141,7 @@ public class Script extends QBeanSupport implements Runnable {
                 .setParameter("stan", ISOUtil.zeropad(isoMsgResponse.getString(11), 12))
                 .setParameter("rrn", isoMsgResponse.getString(37))
                 .setParameter("tid", isoMsgResponse.getString(41))
-                .setParameter("pan", isoMsgResponse.getString(2))
+                .setParameter("mti",mtiOrigen.substring(1))
                 .uniqueResult();
 
         if (result != null) {
@@ -193,7 +194,7 @@ public class Script extends QBeanSupport implements Runnable {
                     futures.add(CompletableFuture.runAsync(() -> {
                         try (XSSFWorkbook localWb = new XSSFWorkbook()) {
                             // Procesa la hoja en su workbook temporal
-                            processSheet(sheet, localWb, origin.getOriginTemplate(), sender);
+                            processSheet(sheet, localWb, sender);
 
                             // Una vez procesada, copia las hojas al workbook principal
                             synchronized (workbookOutput) {
@@ -280,8 +281,7 @@ public class Script extends QBeanSupport implements Runnable {
         }
     }
 
-    private void processSheet(Sheet sheet, Workbook workbookResponse,
-                              Origin origin, IsoBulkSender sender) throws ISOException {
+    private void processSheet(Sheet sheet, Workbook workbookResponse, IsoBulkSender sender) throws Exception {
 
         List<Case> cases = readCases(sheet);
         if (cases.isEmpty()) return;
@@ -297,25 +297,22 @@ public class Script extends QBeanSupport implements Runnable {
             Case c = cases.get(i);
             CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
                 try {
-                    ISOMsg previousResponse = null;
+                    ISOMsg previousRequest= null;
+                    //
+                    Map<String,String> caseContext=origin.buildContextCase(c);
                     for(Case.SpecificCase specificCase: c.getSpecificCases()) {
-                        ISOMsg req = origin.createISOMsg(c,specificCase.getMti());
-                        if (!"0200.00".equalsIgnoreCase(specificCase.getMti()) && previousResponse != null) {
-                            req.set(37, previousResponse.getString(37));
-                            req.set(11, previousResponse.getString(11));
-                            req.set(41, previousResponse.getString(41));
-                        }
-                        if(specificCase.getTipo().toLowerCase().contains("reverso")){
-                            Date date=getDate(previousResponse.getString(12));
-                            String dateHoy=getDateDay(date);
-                            req.set(56,"1100"+previousResponse.getString(11)+dateHoy+getDateTime(date)+"00"+dateHoy+"0000");
-                        }
+                        //ISOMsg req=this.origin.createISOMsgByFile(caseContext,specificCase.getMti(),c.getModalidadComercio());
+
+                        // Procesamos request por origen
+                        ISOMsg req=origin.createISOMsgByFile(caseContext,specificCase.getMti(),c.getModalidadComercio(),previousRequest);
+
                         ISOMsg resp = sender.send(req);
+                        System.out.println("resp: " + resp.toString());
                         //Seteamos original_rrn
-                        resp.set(37, req.getString(37));
-                        resp.set(41, req.getString(41));
-                        results.add(new ResultRecord(groupIndex,resp,specificCase.getResultadoEsperado(),c.getCondicionTarjeta(),c.getCaseName(),specificCase.getTipo()));
-                        previousResponse = resp;
+                        //resp.set(37, req.getString(37));
+                        //resp.set(41, req.getString(41));
+                        results.add(new ResultRecord(groupIndex,resp,c.getCondicionTarjeta(),c.getCaseName(),specificCase));
+                        previousRequest = resp;
                     }
                 } catch (Exception e) {
                     log.warn("Error in case " + c.getCaseName() + ": " + e.getMessage(), e);
@@ -348,20 +345,7 @@ public class Script extends QBeanSupport implements Runnable {
     }
 
 
-    private Date getDate(String date) throws ParseException {
-        SimpleDateFormat simpleDateFormat= new SimpleDateFormat("yyMMddHHmmss");
-        return  simpleDateFormat.parse(date);
-    }
 
-    private String getDateDay(Date date)  {
-        SimpleDateFormat simpleDateFormat= new SimpleDateFormat("MMdd");
-        return  simpleDateFormat.format(date);
-    }
-
-    private String getDateTime(Date date)  {
-        SimpleDateFormat simpleDateFormat= new SimpleDateFormat("HHmmss");
-        return  simpleDateFormat.format(date);
-    }
 
     private void writeResultRow(Sheet sheet, int index, ResultRecord rs) throws ISOException {
         Row row = sheet.createRow(index);
@@ -390,7 +374,7 @@ public class Script extends QBeanSupport implements Runnable {
         }
 
  */
-        setIrcAndSdi(isoMsgResp,row);
+        setIrcAndSdi(isoMsgResp,row,rs.getMtiOrigen());
 
         row.createCell(7).setCellValue(isoMsgResp.getString(37));
     }
@@ -411,7 +395,9 @@ public class Script extends QBeanSupport implements Runnable {
         List<Case> cases= new ArrayList<>();
         for (Row row : sheet) {
             if (row.getRowNum() == 0) continue;
-            cases.add(getCaseFromRow(row));
+            Case c=getCaseFromRow(row);
+            if (c.getCaseName() == null || c.getCaseName().trim().isEmpty()) continue; // Rever esto
+            cases.add(c);
         }
         return cases;
     }
@@ -424,14 +410,16 @@ public class Script extends QBeanSupport implements Runnable {
         private final String condicionTarjeta;
         private final String caseName;
         private final String tipo;
+        private final String mtiOrigen;
 
-        public ResultRecord(int index, ISOMsg response, String resultadoEsperado, String condicionTarjeta, String caseName,String tipo) {
+        public ResultRecord(int index, ISOMsg response, String condicionTarjeta, String caseName, Case.SpecificCase specificCase) {
             this.index = index;
             this.caseName=caseName;
             this.condicionTarjeta=condicionTarjeta;
             this.response = response;
-            this.resultadoEsperado=resultadoEsperado;
-            this.tipo=tipo;
+            this.resultadoEsperado=specificCase.getResultadoEsperado();
+            this.tipo=specificCase.getTipo();
+            this.mtiOrigen=specificCase.getMti();
         }
     }
 
@@ -450,7 +438,7 @@ public class Script extends QBeanSupport implements Runnable {
 
         for (int i = 0; i < total; i++) {
             final Case.SpecificCase specificCase = new Case.SpecificCase();
-            specificCase.setMti(i < mtis.length ? mtis[i] : mtis[0]);
+            specificCase.setMti(mtis[i].trim());
             specificCase.setTipo(i < tipos.length ? tipos[i] : tipos[0]);
             specificCase.setResultadoEsperado(i < resultadosEsperados.length ? resultadosEsperados[i] : resultadosEsperados[0]);
             specificCases.add(specificCase);
@@ -479,7 +467,7 @@ public class Script extends QBeanSupport implements Runnable {
         if (cell == null) return "";
         return cell.getCellType() == CellType.NUMERIC ?
                 String.valueOf((long)cell.getNumericCellValue()) :
-                cell.getStringCellValue();
+                cell.getStringCellValue().toUpperCase();
     }
 
     private static Double getDouble(Row row, int index) {
