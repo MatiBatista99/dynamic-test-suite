@@ -4,9 +4,12 @@ import ar.cabal.dtos.Case;
 import ar.cabal.origins.OriginHandler;
 import jcifs.CIFSContext;
 import jcifs.smb.SmbFile;
+import org.apache.poi.xssf.usermodel.XSSFPivotTable;
 import org.jpos.iso.ISOException;
 import org.jpos.iso.ISOMsg;
 import org.jpos.iso.ISOUtil;
+import org.jpos.q2.iso.TaskAdaptor;
+import org.jpos.util.Log;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -180,8 +183,6 @@ public class PosnetOriginHandler extends OriginHandler {
         ctx.put("TRANSMISSION_DATE", getNowFormatDate("MMddHHmmss"));
 
 
-
-
         switch (operation)  {
             case AUTORIZACION_COMPRA:
                 ctx.put("RRN",
@@ -191,11 +192,18 @@ public class PosnetOriginHandler extends OriginHandler {
                         String.format("%016d", Math.abs(new java.util.Random().nextLong()) % 10000000000000000L));
                 break;
             case AUTORIZACION_ANULACION:
-                ctx.put("RRN", previousRequest.getString(37));
-                ctx.put("TID", previousRequest.getString(41));
+                ctx.put("ORIGINF", previousRequest.getMTI()+previousRequest.getString(37)+previousRequest.getString(13)+previousRequest.getString(12)+previousRequest.getString(13)+"000000000000");
+                break;
+            case AUTORIZACION_DEVOLUCION:
                 ctx.put("ORIGINF", previousRequest.getMTI()+previousRequest.getString(37)+previousRequest.getString(13)+previousRequest.getString(12)+previousRequest.getString(13)+"000000000000");
                 break;
             case REVERSO_COMPRA:
+                TaskAdaptor
+                ctx.put("COD_REVER","R9");
+                ctx.put("ORIGINALDATA",previousRequest.getMTI()+previousRequest.getString(37)+previousRequest.getString(13)+previousRequest.getString(12)+previousRequest.getString(13)+"000000000000");
+                ctx.put("NUMAUTH",previousRequest.getString(38));
+                break;
+            case REVERSO_ANULACION:
                 ctx.put("COD_REVER","R9");
                 ctx.put("ORIGINALDATA",previousRequest.getMTI()+previousRequest.getString(37)+previousRequest.getString(13)+previousRequest.getString(12)+previousRequest.getString(13)+"000000000000");
                 ctx.put("NUMAUTH",previousRequest.getString(38));
@@ -214,6 +222,7 @@ public class PosnetOriginHandler extends OriginHandler {
             throw new ISOException("No se encontró definición MTI+PCODE para: " + mti);
         }
 
+
         String filename = getFilename(operation,modadlidadComercio);
 
         ISOMsg msg = getMessage(filename);
@@ -224,7 +233,7 @@ public class PosnetOriginHandler extends OriginHandler {
         //Agregamos MTI, PCode y fechas segun operacion
         buildSpecificCase(caseContext,operation,previousRequest);
 
-        return applyRequestProps(msg, caseContext);
+        return applyRequestProps(msg,caseContext);
     }
 
 
@@ -248,7 +257,7 @@ public class PosnetOriginHandler extends OriginHandler {
                 break;
 
             case AUTORIZACION_DEVOLUCION:
-                filename.append("devolucion");
+                filename.append("dev");
                 break;
 
             // === REVERSOS ===
