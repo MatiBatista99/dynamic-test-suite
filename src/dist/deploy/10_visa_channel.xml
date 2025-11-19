@@ -1,0 +1,11 @@
+<channel-adaptor name='selftest-adaptor-visa' class="org.jpos.q2.iso.ChannelAdaptor" logger="Q2">
+    <channel class="ar.cabal.channels.B24Channel" logger="Q2"
+             packager="org.jpos.iso.packager.GenericPackager">
+        <property name="packager-config" value="cfg/iso93ascii.xml" />
+        <property name="host" value="@10_channel_host@" /> <!-- lphotonn01vts // lphotonn02vts // lphotonn03vts -->
+        <property name="port" value="11350" />
+    </channel>
+    <in>selftest-visa-send</in>
+    <out>selftest-visa-receive</out>
+    <reconnect-delay>10000</reconnect-delay>
+</channel-adaptor>

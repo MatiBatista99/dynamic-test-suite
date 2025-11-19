@@ -1,7 +1,0 @@
-<?xml version="1.0" ?>
-
-<mux class="org.jpos.q2.iso.QMUX" logger="Q2" name="dynamic-channel-mux">
-    <in>dynamic-channel-receive</in>
-    <out>dynamic-channel-send</out>
-    <ready>dynamic-channel.ready</ready>
-</mux>

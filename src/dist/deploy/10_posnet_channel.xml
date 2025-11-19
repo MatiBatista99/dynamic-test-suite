@@ -1,0 +1,14 @@
+<channel-adaptor name='selftest-adaptor-posnet'
+                 class="org.jpos.q2.iso.ChannelAdaptor" logger="Q2">
+    <channel class="ar.cabal.channels.B24Channel" logger="Q2"
+             header="P180ISO026000000"
+             packager="org.jpos.iso.packager.GenericPackager">
+
+        <property name="packager-config" value="cfg/iso87ascii_posnet_dobleBitmap.xml" />
+        <property name="host" value="@10_channel_host@" /> <!-- lphotonn01vts // lphotonn02vts // lphotonn03vts -->
+        <property name="port" value="10750" />
+    </channel>
+    <in>selftest-posnet-send</in>
+    <out>selftest-posnet-receive</out>
+    <reconnect-delay>10000</reconnect-delay>
+</channel-adaptor>

@@ -2,35 +2,35 @@ package ar.cabal.origins.visa;
 
 import ar.cabal.dtos.Case;
 import ar.cabal.origins.OriginHandler;
+import ar.cabal.origins.TypeOperations;
 import ar.cabal.origins.posnet.TypeOperationsPosnet;
+import ar.cabal.qmux.QMux;
 import jcifs.CIFSContext;
 import jcifs.smb.SmbFile;
 
 import org.jpos.iso.ISOException;
 import org.jpos.iso.ISOMsg;
 import org.jpos.iso.ISOUtil;
+import org.jpos.iso.MUX;
 
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
 
 public class VisaOriginHandler extends OriginHandler {
 
 
+    private static final String filePath="cfg/visa/visa_";
+
+    private static final String[] keysMux= new String[] {"12", "37"};
+
     public VisaOriginHandler(String fileServer) {
         this.SERVER=fileServer;
     }
 
-
-    @Override
-    public SmbFile getInputFile(CIFSContext context) throws Exception {
-        return new SmbFile(buildPath(IN_SHARE, "visa_test_suite.xlsx"), context);
-    }
 
     @Override
     public SmbFile getOutputFile(CIFSContext context) throws Exception {
@@ -169,22 +169,15 @@ public class VisaOriginHandler extends OriginHandler {
 
         ctx.put("CAMPO48", campo48);
 
-        // =======================
-        // Fechas ISO (local, hora, transmisión)
-        // =======================
-
-        ctx.put("TRANSMISSION_DATE", getNowFormatDate("MMddHHmmss"));
-
         return ctx;
     }
 
+
+
+
     @Override
-    public Map<String, String> buildSpecificCase(Map<String, String> ctx, TypeOperationsPosnet operation, ISOMsg previousRequest) throws ISOException {
-        return Map.of();
-    }
-
-
-    public Map<String, String> buildSpecificCase(Map<String, String> ctx, TypeOperationsVisa operation, ISOMsg previousRequest) throws ISOException {
+    public void buildSpecificCase(Map<String, String> ctx, TypeOperations operations, ISOMsg previousRequest) throws ISOException {
+        TypeOperationsVisa operation= TypeOperationsVisa.fromKey(operations.getOriginalMti());
         // =======================
         // MTI y PROCESS CODE
         // =======================
@@ -197,70 +190,34 @@ public class VisaOriginHandler extends OriginHandler {
         ctx.put("LOCAL_DATE", getNowFormatDate("MMdd"));
         ctx.put("LOCAL_TIME", getNowFormatDate("HHmmss"));
         ctx.put("CAPTURE_DATE",  getNowFormatDate("MMdd"));
-        ctx.put("TRANSMISSION_DATE", getNowFormatDate("MMddHHmmss"));
+        ctx.put("TRANSMISSION_DATE", getNowFormatDate("yyMMddHHmmss"));
 
-        switch (operation) {
 
-            case REVERSO_COMPRA:
-                ctx.put("ORIGINALDATA",previousRequest.getMTI()+ ctx.get("STAN") + ctx.get("LOCAL_DATE")+ctx.get("LOCAL_TIME") + "00"+ ctx.get("LOCAL_DATE") + "0000");
-                break;
-
-            case REVERSO_DEVOLUCION:
-                ctx.put("ORIGINALDATA",previousRequest.getMTI()+ ctx.get("STAN") + ctx.get("LOCAL_DATE")+ctx.get("LOCAL_TIME") + "00"+ ctx.get("LOCAL_DATE") + "0000");
-                break;
-
-            case REVERSO_ANULACION:
-                ctx.put("ORIGINALDATA",previousRequest.getMTI()+ ctx.get("STAN") + ctx.get("LOCAL_DATE")+ctx.get("LOCAL_TIME") + "00"+ ctx.get("LOCAL_DATE") + "0000");
-                break;
+        if(operation.equals(TypeOperationsVisa.REVERSO_COMPRA) || operation.equals(TypeOperationsVisa.REVERSO_ANULACION) || operation.equals(TypeOperationsVisa.REVERSO_DEVOLUCION)){
+            ctx.put("ORIGINALDATA",previousRequest.getMTI()+ ctx.get("STAN") + ctx.get("LOCAL_DATE")+ctx.get("LOCAL_TIME") + "00"+ ctx.get("LOCAL_DATE") + "0000");
         }
-
-        return ctx;
     }
-
-    /*
-
 
     @Override
-    public ISOMsg createISOMsgByFile(Case c, Case.SpecificCase specificCase)
-            throws ISOException, IOException {
-
-        String key = specificCase.getMti();
-        TypeOperationsVisa operation = TypeOperationsVisa.fromKey(key);
-
-        if (operation == null) {
-            throw new ISOException("No se encontró definición MTI+PCODE para: " + key);
-        }
-
-        String modalidad = c.getModalidadComercio();
-        if (modalidad == null || modalidad.isBlank()) {
-            throw new ISOException("Modalidad de comercio no definida en el caso.");
-        }
-
-        modalidad = modalidad.toUpperCase();
-
-        String filename = buildVisaFilename(operation, modalidad);
-
-        ISOMsg msg = getMessage(filename);
-
-        // Log opcional
-        System.out.println("[DEBUG] Archivo XML seleccionado: " + filename);
-
-        Map<String, String> mapContext = origin.buildContextMap(c, specificCase.getMti());
-
-        return applyRequestProps(msg, mapContext);
+    public void setKeysMux(QMux qMux) {
+        qMux.setKeys(keysMux);
     }
 
-     */
+    @Override
+    public String getName() {
+        return "VISA";
+    }
+
 
     @Override
     public ISOMsg createISOMsgByFile(Map<String, String> caseContext, String mti, String modalidadComercio, ISOMsg previousRequest) throws ISOException, IOException {
-        TypeOperationsVisa operation = TypeOperationsVisa.fromKey(mti);
+        TypeOperations operation = TypeOperations.fromKey(mti);
 
         if (operation == null) {
             throw new ISOException("No se encontró definición MTI+PCODE para: " + mti);
         }
 
-        String filename = getFilename(operation,modalidadComercio);
+        String filename = getFilename(operation,filePath,modalidadComercio);
 
         ISOMsg msg = getMessage(filename);
 
@@ -273,21 +230,11 @@ public class VisaOriginHandler extends OriginHandler {
         return applyRequestProps(msg, caseContext);
     }
 
-    protected String resolveModalidad(String modalidad, TypeOperationsVisa op)
-            throws ISOException {
-
-        String result = modalidadMap.get(modalidad);
-        if (result == null) {
-            throw new ISOException("Modalidad de comercio desconocida: " + modalidad + " para operación " + op.name());
-        }
-        return result;
-    }
 
 
-    /**
-     * Construye el nombre de archivo VISA basado en la operación y modalidad.
-     */
-    private String getFilename(TypeOperationsVisa operation, String modalidad) throws ISOException {
+/*
+    @Override
+    public String getFilename(TypeOperations operation, String modalidad) throws ISOException {
 
         StringBuilder filename = new StringBuilder("cfg/visa/visa_");
 
@@ -321,50 +268,8 @@ public class VisaOriginHandler extends OriginHandler {
         return filename.toString();
     }
 
+ */
 
-
-
-    /**
-     * Construye el nombre de archivo VISA basado en la operación y modalidad.
-     */
-    private String buildVisaFilename(TypeOperationsVisa operation, String modalidad) throws ISOException {
-        StringBuilder filename = new StringBuilder("cfg/visa/visa_");
-
-        // Mapas auxiliares para simplificar la lógica
-        Map<String, String> modalidadMap = Map.of(
-                "MOSTRADOR", "magstripe",
-                "INTERNET", "man"
-        );
-
-        switch (operation) {
-            // === AUTORIZACIONES ===
-            case AUTORIZACION_COMPRA:
-                filename.append("auth_");
-                filename.append(resolveModalidad(modalidad, modalidadMap, operation));
-                break;
-
-            case AUTORIZACION_ANULACION:
-                filename.append("anul");
-                break;
-
-            case AUTORIZACION_DEVOLUCION:
-                filename.append("devolucion");
-                break;
-
-            // === REVERSOS ===
-            case REVERSO_COMPRA:
-            case REVERSO_ANULACION:
-            case REVERSO_DEVOLUCION:
-                filename.append("rever");
-                break;
-
-            default:
-                throw new ISOException("Tipo de operación no soportado: " + operation.name());
-        }
-
-        filename.append(".xml");
-        return filename.toString();
-    }
 
 
 

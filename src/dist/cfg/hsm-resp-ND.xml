@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<schema id='ND'>
- <field id="lmk-check-value" type="A" length="16" />
- <field id="firmware-number" type="A" length="9" />
-</schema>

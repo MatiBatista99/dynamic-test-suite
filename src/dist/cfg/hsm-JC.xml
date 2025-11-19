@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<schema id='JC'>
-    <field id="tpk"               type="A" length="33" />
-    <field id="pinblk"            type="A" length="16" />
-    <field id="pinblk-format"     type="N" length="2" />
-    <field id="account-number"    type="A" length="12" />
-</schema>

@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<schema id='FF'>
- <field id="tpk-type-under-zmk" type="A" length="1" />
- <field id="tpk-under-zmk"      type="A" length="48" />	
- <field id="tpk-check"          type="A" length="6" />
- <field id="tpk-extended-check" type="A" length="10" />
-</schema>

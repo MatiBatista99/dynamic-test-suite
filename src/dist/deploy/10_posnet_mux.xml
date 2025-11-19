@@ -1,0 +1,5 @@
+<mux class="org.jpos.q2.iso.QMUX" logger="Q2" name="selftest-posnet-mux">
+    <in>selftest-posnet-receive</in>
+    <out>selftest-posnet-send</out>
+    <unhandled>selftest-unhandled</unhandled>
+</mux>

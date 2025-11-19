@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<schema id='BA'>
-    <field id="pin" type="ADS"/>
-    <field id="account-number" type="A" length="12" />
-</schema>

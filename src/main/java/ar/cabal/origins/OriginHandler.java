@@ -3,6 +3,7 @@ package ar.cabal.origins;
 import ar.cabal.dtos.Case;
 import ar.cabal.origins.posnet.TypeOperationsPosnet;
 import ar.cabal.origins.visa.TypeOperationsVisa;
+import ar.cabal.qmux.QMux;
 import jcifs.CIFSContext;
 import jcifs.smb.SmbFile;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -42,17 +43,21 @@ public abstract class OriginHandler {
         return "smb://" + SERVER + "/" + share + "/" + filename;
     }
 
+    public abstract void buildSpecificCase(Map<String, String> ctx, TypeOperations operation, ISOMsg previousRequest) throws ISOException;
+
+    public abstract void setKeysMux(QMux qMux);
 
 
-    public abstract SmbFile getInputFile(CIFSContext context) throws Exception;
+    public SmbFile getInputFile(CIFSContext context) throws Exception{
+        return new SmbFile(buildPath(IN_SHARE, "homologacion_test_suite.xlsx"), context);
+    };
+
+    public abstract String getName();
 
     public abstract SmbFile getOutputFile(CIFSContext context) throws Exception;
 
 
     public abstract Map<String, String> buildContextCase(Case c) throws ISOException;
-
-
-    public abstract Map<String, String> buildSpecificCase(Map<String, String> ctx, TypeOperationsPosnet operation, ISOMsg previousRequest) throws ISOException;
 
 
     public abstract ISOMsg createISOMsgByFile(Map<String,String> caseContext, String mti,String modalidadComercio,ISOMsg previousRequest) throws ISOException, IOException;
@@ -125,6 +130,50 @@ public abstract class OriginHandler {
     protected String resolveModalidad(String modalidad, Map<String, String> modalidadMap, TypeOperationsVisa op)
             throws ISOException {
 
+        String result = modalidadMap.get(modalidad);
+        if (result == null) {
+            throw new ISOException("Modalidad de comercio desconocida: " + modalidad + " para operación " + op.name());
+        }
+        return result;
+    }
+
+    protected String getFilename(TypeOperations operation,String filePath, String modalidad) throws ISOException {
+
+        StringBuilder filename = new StringBuilder(filePath);
+
+        switch (operation) {
+            // === AUTORIZACIONES ===
+            case AUTORIZACION_COMPRA:
+                filename.append("auth_");
+                filename.append(resolveModalidad(modalidad, operation));
+                break;
+
+            case AUTORIZACION_ANULACION:
+                filename.append("anul");
+                break;
+
+            case AUTORIZACION_DEVOLUCION:
+                filename.append("devolucion");
+                break;
+
+            // === REVERSOS ===
+            case REVERSO_COMPRA:
+            case REVERSO_ANULACION:
+            case REVERSO_DEVOLUCION:
+                filename.append("rever");
+                break;
+
+            default:
+                throw new ISOException("Tipo de operación no soportado: " + operation.name());
+        }
+
+        filename.append(".xml");
+        return filename.toString();
+    }
+
+
+    private String resolveModalidad(String modalidad, TypeOperations op)
+            throws ISOException {
         String result = modalidadMap.get(modalidad);
         if (result == null) {
             throw new ISOException("Modalidad de comercio desconocida: " + modalidad + " para operación " + op.name());

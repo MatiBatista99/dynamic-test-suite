@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<schema id='CZ'>
-    <field id="error-code" type="A" length="2" />
-</schema>
-

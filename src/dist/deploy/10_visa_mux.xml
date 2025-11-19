@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+
+<mux class="org.jpos.q2.iso.QMUX" logger="Q2" name="selftest-visa-mux">
+    <in>selftest-visa-receive</in>
+    <out>selftest-visa-send</out>
+    <unhandled>selftest-unhandled</unhandled>
+    <key>2, 12</key>
+</mux>
