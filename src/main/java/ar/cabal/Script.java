@@ -8,6 +8,8 @@ import org.jpos.ee.DB;
 import org.jpos.iso.*;
 import org.jpos.q2.QBeanSupport;
 
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class Script extends QBeanSupport  {
@@ -24,19 +26,25 @@ public class Script extends QBeanSupport  {
         try {
             String[] origins = {"VISA", "POSNET"};
 
-            DB db= new DB();
-            db.open();
+
+            List<Thread> threads = new ArrayList<>();
 
             for (String origin : origins) {
+                DB db= new DB();
+                db.open();
                 MUX mux = MuxFactory.getMuxByOrigin(origin);
                 OriginHandler originHandler=OriginHandlerFactory.getHandler(origin, fileServer);
                 Thread t = new Thread(
-                        new OriginRunner(getServer(),originHandler, mux, db,log),
+                        new OriginRunner(originHandler, mux, db,log),
                         origin + "-Runner"
                 );
-
+                threads.add(t);
                 t.start();
             }
+            for (Thread t : threads) {
+                t.join();
+            }
+            getServer().shutdown();
 
         } catch (Exception e) {
             log.error(e);

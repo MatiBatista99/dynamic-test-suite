@@ -35,14 +35,13 @@ import java.util.stream.Collectors;
 public class OriginRunner implements Runnable{
 
     private final OriginHandler origin;
-    private final Q2 serverQ2;
     private final MUX mux;
     private final DB db;
     private final Log log;
     private static final int THREAD_POOL_SIZE = Math.max(4, Runtime.getRuntime().availableProcessors() * 2);
 
-    public OriginRunner(Q2 q2, OriginHandler originHandler, MUX mux, DB db, Log log) {
-        this.serverQ2=q2;
+    public OriginRunner (OriginHandler originHandler, MUX mux, DB db, Log log) {
+
         this.origin = originHandler;
         this.mux = mux;
         this.db = db;
@@ -108,7 +107,6 @@ public class OriginRunner implements Runnable{
             log.error("Error during obtain excel from file server: " + e.getMessage(), e);
         }
 
-        serverQ2.shutdown();
     }
 
     private void mergeSheets(XSSFWorkbook sourceWb, Workbook targetWb) {
