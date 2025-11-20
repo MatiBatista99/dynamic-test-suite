@@ -8,6 +8,8 @@ import ar.cabal.qmux.QMux;
 import jcifs.CIFSContext;
 import jcifs.smb.SmbFile;
 
+import org.apache.poi.ss.usermodel.Row;
+import org.jpos.ee.DB;
 import org.jpos.iso.ISOException;
 import org.jpos.iso.ISOMsg;
 import org.jpos.iso.ISOUtil;
@@ -25,7 +27,6 @@ public class VisaOriginHandler extends OriginHandler {
 
     private static final String filePath="cfg/visa/visa_";
 
-    private static final String[] keysMux= new String[] {"12", "37"};
 
     public VisaOriginHandler(String fileServer) {
         this.SERVER=fileServer;
@@ -192,16 +193,11 @@ public class VisaOriginHandler extends OriginHandler {
         ctx.put("CAPTURE_DATE",  getNowFormatDate("MMdd"));
         ctx.put("TRANSMISSION_DATE", getNowFormatDate("yyMMddHHmmss"));
 
-
         if(operation.equals(TypeOperationsVisa.REVERSO_COMPRA) || operation.equals(TypeOperationsVisa.REVERSO_ANULACION) || operation.equals(TypeOperationsVisa.REVERSO_DEVOLUCION)){
             ctx.put("ORIGINALDATA",previousRequest.getMTI()+ ctx.get("STAN") + ctx.get("LOCAL_DATE")+ctx.get("LOCAL_TIME") + "00"+ ctx.get("LOCAL_DATE") + "0000");
         }
     }
 
-    @Override
-    public void setKeysMux(QMux qMux) {
-        qMux.setKeys(keysMux);
-    }
 
     @Override
     public String getName() {
@@ -269,6 +265,36 @@ public class VisaOriginHandler extends OriginHandler {
     }
 
  */
+
+
+    @Override
+    public void setIrcAndSdi(DB db,ISOMsg isoMsgResponse, Row row, String mtiOrigen) throws ISOException {
+        String sql = """
+        SELECT 
+            tl.CODRESPUESTAINTERNO AS irc,
+            ac1.description AS irc_desc
+        FROM tranlog tl
+        LEFT JOIN action_codes ac1 ON ac1.code = TO_NUMBER(tl.CODRESPUESTAINTERNO)
+        WHERE tl.codigoMoneda = :currencyCode
+          AND tl.ss_stan = :stan
+         AND tl.codtransaccioninterno =:mti
+        ORDER BY tl.id DESC
+        FETCH FIRST 1 ROW ONLY
+    """;
+
+        Object[] result = (Object[]) db.session().createNativeQuery(sql)
+                .setParameter("currencyCode", isoMsgResponse.getString(49))
+                .setParameter("stan", ISOUtil.zeropad(isoMsgResponse.getString(11), 12))
+                .setParameter("mti",mtiOrigen.substring(1))
+                .uniqueResult();
+
+        if (result != null) {
+            // IRC y descripción
+            row.createCell(5).setCellValue(result[0] != null ? result[0].toString() : "");
+            row.createCell(6).setCellValue(result[1] != null ? result[1].toString() : "");
+
+        }
+    }
 
 
 

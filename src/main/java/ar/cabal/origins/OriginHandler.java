@@ -6,7 +6,9 @@ import ar.cabal.origins.visa.TypeOperationsVisa;
 import ar.cabal.qmux.QMux;
 import jcifs.CIFSContext;
 import jcifs.smb.SmbFile;
+import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.jpos.ee.DB;
 import org.jpos.iso.*;
 import org.jpos.iso.packager.XMLPackager;
 import org.jpos.space.Space;
@@ -45,12 +47,12 @@ public abstract class OriginHandler {
 
     public abstract void buildSpecificCase(Map<String, String> ctx, TypeOperations operation, ISOMsg previousRequest) throws ISOException;
 
-    public abstract void setKeysMux(QMux qMux);
-
 
     public SmbFile getInputFile(CIFSContext context) throws Exception{
         return new SmbFile(buildPath(IN_SHARE, "homologacion_test_suite.xlsx"), context);
     };
+
+    public abstract void setIrcAndSdi(DB db, ISOMsg isoMsgResponse, Row row, String mtiOrigen) throws ISOException;
 
     public abstract String getName();
 

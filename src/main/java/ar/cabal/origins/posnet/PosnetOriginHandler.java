@@ -6,6 +6,8 @@ import ar.cabal.origins.TypeOperations;
 import ar.cabal.qmux.QMux;
 import jcifs.CIFSContext;
 import jcifs.smb.SmbFile;
+import org.apache.poi.ss.usermodel.Row;
+import org.jpos.ee.DB;
 import org.jpos.iso.ISOException;
 import org.jpos.iso.ISOMsg;
 import org.jpos.iso.ISOUtil;
@@ -22,7 +24,6 @@ import java.util.concurrent.ThreadLocalRandom;
 public class PosnetOriginHandler extends OriginHandler {
 
     private static final String filePath="cfg/posnet/pos_";
-    private static final String[] keysMux= new String[] { "41", "7"};
 
 
     public PosnetOriginHandler(String fileServer) {
@@ -77,10 +78,37 @@ public class PosnetOriginHandler extends OriginHandler {
     }
 
     @Override
-    public void setKeysMux(QMux qMux) {
-        qMux.setKeys(keysMux);
-    }
+    public void setIrcAndSdi(DB db,ISOMsg isoMsgResponse, Row row, String mtiOrigen) throws ISOException {
+        String sql = """
+        SELECT 
+            tl.CODRESPUESTAINTERNO AS irc,
+            ac1.description AS irc_desc
+        FROM tranlog tl
+        LEFT JOIN action_codes ac1 ON ac1.code = TO_NUMBER(tl.CODRESPUESTAINTERNO)
+        WHERE tl.codigoMoneda = :currencyCode
+          AND tl.ss_stan = :stan
+          AND tl.ss_rrn = :rrn
+          AND tl.idTerminal = :tid
+         AND tl.codtransaccioninterno =:mti
+        ORDER BY tl.id DESC
+        FETCH FIRST 1 ROW ONLY
+    """;
 
+        Object[] result = (Object[]) db.session().createNativeQuery(sql)
+                .setParameter("currencyCode", isoMsgResponse.getString(49))
+                .setParameter("stan", ISOUtil.zeropad(isoMsgResponse.getString(11), 12))
+                .setParameter("rrn", isoMsgResponse.getString(37))
+                .setParameter("tid", isoMsgResponse.getString(41))
+                .setParameter("mti", mtiOrigen.substring(1))
+                .uniqueResult();
+
+        if (result != null) {
+            // IRC y descripción
+            row.createCell(5).setCellValue(result[0] != null ? result[0].toString() : "");
+            row.createCell(6).setCellValue(result[1] != null ? result[1].toString() : "");
+
+        }
+    }
 
     @Override
     public SmbFile getOutputFile(CIFSContext context) throws Exception {

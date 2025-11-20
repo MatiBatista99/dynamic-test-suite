@@ -253,7 +253,7 @@ public class OriginRunner implements Runnable{
         }
 
  */
-        setIrcAndSdi(isoMsgResp,row,rs.getMtiOrigen());
+        origin.setIrcAndSdi(db,isoMsgResp,row,rs.getMtiOrigen());
 
         row.createCell(7).setCellValue(isoMsgResp.getString(37));
     }

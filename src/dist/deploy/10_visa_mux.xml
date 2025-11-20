@@ -4,5 +4,5 @@
     <in>selftest-visa-receive</in>
     <out>selftest-visa-send</out>
     <unhandled>selftest-unhandled</unhandled>
-    <key>2, 12</key>
+    <key>11, 12</key>
 </mux>
