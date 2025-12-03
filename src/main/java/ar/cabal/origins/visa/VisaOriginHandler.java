@@ -193,9 +193,34 @@ public class VisaOriginHandler extends OriginHandler {
         ctx.put("CAPTURE_DATE",  getNowFormatDate("MMdd"));
         ctx.put("TRANSMISSION_DATE", getNowFormatDate("yyMMddHHmmss"));
 
-        if(operation.equals(TypeOperationsVisa.REVERSO_COMPRA) || operation.equals(TypeOperationsVisa.REVERSO_ANULACION) || operation.equals(TypeOperationsVisa.REVERSO_DEVOLUCION)){
-            ctx.put("ORIGINALDATA",previousRequest.getMTI()+ ctx.get("STAN") + ctx.get("LOCAL_DATE")+ctx.get("LOCAL_TIME") + "00"+ ctx.get("LOCAL_DATE") + "0000");
+        if(operation.equals(TypeOperationsVisa.AUTORIZACION_COMPRA)){
+
         }
+
+        if(operation.equals(TypeOperationsVisa.REVERSO_COMPRA)
+                || operation.equals(TypeOperationsVisa.REVERSO_ANULACION)
+                || operation.equals(TypeOperationsVisa.REVERSO_DEVOLUCION)) {
+
+            String stan = previousRequest.getString(11); // 6 digits
+            String datetime = previousRequest.getString(12); // yyMMddHHmmss
+
+            String mmdd = datetime.substring(0,4);      // MMDD
+            String hhmmss = datetime.substring(6,12);   // HHMMSS
+
+            String originalAmount = previousRequest.getString(4);
+            String amountLast4 = originalAmount.substring(originalAmount.length() - 4);
+
+            String campo56 = "1100"
+                    + stan
+                    + hhmmss
+                    + "00"
+                    + mmdd
+                    + "0000"
+                    + amountLast4;
+
+            ctx.put("ORIGINALDATA", campo56);
+        }
+
     }
 
 
