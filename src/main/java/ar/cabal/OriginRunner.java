@@ -184,12 +184,16 @@ public class OriginRunner implements Runnable{
                     //
                     Map<String,String> caseContext=origin.buildContextCase(c);
                     for(Case.SpecificCase specificCase: c.getSpecificCases()) {
-                        // Procesamos request por origen
-                        ISOMsg req=origin.createISOMsgByFile(caseContext,specificCase.getMti(),c.getModalidadComercio(),previousRequest);
+                        previousRequest = origin.processSpecificCase(
+                                caseContext,
+                                specificCase,
+                                c,
+                                previousRequest,
+                                sender,
+                                results,
+                                groupIndex
+                        );
 
-                        ISOMsg resp = sender.send(req);
-                        results.add(new ResultRecord(groupIndex,resp,c.getCondicionTarjeta(),c.getCaseName(),specificCase));
-                        previousRequest = resp;
                     }
                 } catch (Exception e) {
                     log.warn("Error in case " + c.getCaseName() + ": " + e.getMessage(), e);
@@ -280,7 +284,7 @@ public class OriginRunner implements Runnable{
     }
 
     @Data
-    private static class ResultRecord {
+    public static class ResultRecord {
         private final int index;
         private final String resultadoEsperado;
         private final ISOMsg response;
@@ -456,7 +460,7 @@ public class OriginRunner implements Runnable{
         props.put("jcifs.smb.client.maxVersion", "SMB311");
 
         return new BaseContext(new PropertyConfiguration(props))
-                .withCredentials(new jcifs.smb.NtlmPasswordAuthenticator("", "peld-mbatista", "Cabal2025"));
+                .withCredentials(new jcifs.smb.NtlmPasswordAuthenticator("", "peld-mbatista", "Riverelmacpao920."));
     }
 
 }

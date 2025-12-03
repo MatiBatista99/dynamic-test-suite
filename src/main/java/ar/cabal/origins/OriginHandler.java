@@ -1,5 +1,7 @@
 package ar.cabal.origins;
 
+import ar.cabal.IsoBulkSender;
+import ar.cabal.OriginRunner;
 import ar.cabal.dtos.Case;
 import ar.cabal.origins.posnet.TypeOperationsPosnet;
 import ar.cabal.origins.visa.TypeOperationsVisa;
@@ -22,6 +24,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public abstract class OriginHandler {
 
@@ -112,6 +115,15 @@ public abstract class OriginHandler {
         }
         return m;
     }
+
+    public abstract ISOMsg processSpecificCase(
+            Map<String,String> caseContext,
+            Case.SpecificCase specificCase,
+            Case c,
+            ISOMsg previousRequest,
+            IsoBulkSender sender,
+            ConcurrentLinkedQueue<OriginRunner.ResultRecord> results,
+            int groupIndex) throws Exception;
 
     protected Date getDate(String date) throws ParseException {
         SimpleDateFormat simpleDateFormat= new SimpleDateFormat("yyMMddHHmmss");

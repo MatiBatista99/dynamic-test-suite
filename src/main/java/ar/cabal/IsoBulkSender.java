@@ -31,7 +31,7 @@ public class IsoBulkSender extends Log {
         try {
             // Simulación de envío por socket al host
             System.out.println("Enviando transacción: " + tx.getMTI() + " Trace: " + tx.getString(11));
-            return mux.request(tx,15000);
+            return mux.request(tx,150000);
         } catch (Exception e) {
             throw new RuntimeException("Error enviando transacción", e);
         }

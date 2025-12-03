@@ -1,5 +1,8 @@
 package ar.cabal.origins.posnet;
 
+import ar.cabal.CaseContext;
+import ar.cabal.IsoBulkSender;
+import ar.cabal.OriginRunner;
 import ar.cabal.dtos.Case;
 import ar.cabal.origins.OriginHandler;
 import ar.cabal.origins.TypeOperations;
@@ -19,6 +22,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class PosnetOriginHandler extends OriginHandler {
@@ -62,6 +66,7 @@ public class PosnetOriginHandler extends OriginHandler {
                 ctx.put("ORIGINF", previousRequest.getMTI()+previousRequest.getString(37)+previousRequest.getString(13)+previousRequest.getString(12)+previousRequest.getString(13)+"000000000000");
                 break; */
             case AUTORIZACION_DEVOLUCION:
+                ctx.put("NUMAUTH",previousRequest.getString(38));
                 ctx.put("ORIGINF", previousRequest.getMTI()+previousRequest.getString(37)+previousRequest.getString(13)+previousRequest.getString(12)+previousRequest.getString(13)+"000000000000");
                 break;
             case REVERSO_COMPRA:
@@ -120,6 +125,41 @@ public class PosnetOriginHandler extends OriginHandler {
     public String getName() {
         return "POSNET";
     }
+
+    @Override
+    public ISOMsg processSpecificCase(
+            Map<String,String> caseContext,
+            Case.SpecificCase specificCase,
+            Case c,
+            ISOMsg previousRequest,
+            IsoBulkSender sender,
+            ConcurrentLinkedQueue<OriginRunner.ResultRecord> results,
+            int groupIndex) throws Exception {
+
+        // Crear request según origen
+        ISOMsg req = createISOMsgByFile(
+                caseContext,
+                specificCase.getMti(),
+                c.getModalidadComercio(),
+                previousRequest
+        );
+
+
+        // Enviar
+        ISOMsg resp = sender.send(req);
+
+
+        // Registrar resultado
+        results.add(new OriginRunner.ResultRecord(
+                groupIndex,
+                resp,
+                c.getCondicionTarjeta(),
+                c.getCaseName(),
+                specificCase
+        ));
+        return resp;
+    }
+
 
 
     @Override

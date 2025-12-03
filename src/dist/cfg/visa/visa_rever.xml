@@ -3,7 +3,6 @@
     <field id="2" value='!PAN'/>
     <field id="3" value='!PCODE'/>
     <field id='4' value='!AMOUNTTRN'/>
-    <field id='5' value='!AMOUNTSET'/>
     <field id='11' value='!STAN'/>
     <field id='12' value='!TRANSMISSION_DATE'/>
     <field id="25" value="4006"/>

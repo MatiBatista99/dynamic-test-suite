@@ -1,5 +1,7 @@
 package ar.cabal.origins.visa;
 
+import ar.cabal.IsoBulkSender;
+import ar.cabal.OriginRunner;
 import ar.cabal.dtos.Case;
 import ar.cabal.origins.OriginHandler;
 import ar.cabal.origins.TypeOperations;
@@ -19,6 +21,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
 
 
@@ -249,6 +252,18 @@ public class VisaOriginHandler extends OriginHandler {
         buildSpecificCase(caseContext,operation,previousRequest);
 
         return applyRequestProps(msg, caseContext);
+    }
+
+    @Override
+    public ISOMsg processSpecificCase(Map<String, String> caseContext, Case.SpecificCase specificCase, Case c, ISOMsg previousRequest, IsoBulkSender sender, ConcurrentLinkedQueue<OriginRunner.ResultRecord> results, int groupIndex) throws Exception {
+        ISOMsg req=createISOMsgByFile(caseContext,specificCase.getMti(),c.getModalidadComercio(),previousRequest);
+        if(previousRequest != null && !req.hasField(37)) {
+            req.set(37, previousRequest.getString(37)); // Para caso visa
+        }
+        ISOMsg resp = sender.send(req);
+        resp.set(37,req.getString(37));
+        results.add(new OriginRunner.ResultRecord(groupIndex,resp,c.getCondicionTarjeta(),c.getCaseName(),specificCase));
+        return req;
     }
 
 
