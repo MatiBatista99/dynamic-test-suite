@@ -17,7 +17,7 @@ public enum TypeOperationsPosnet {
 
     // Reverso
     REVERSO_COMPRA("0420.00","0420","000030", "Reverso de compra"),
-    REVERSO_ANULACION("0420.02","0420","220030", "Reverso de anulacion"),
+    REVERSO_ANULACION("0420.02","0420","020030", "Reverso de anulacion"),
     REVERSO_DEVOLUCION("0420.20","0420","200030", "Reverso de devolucion");
 
     private final String originalMti;
