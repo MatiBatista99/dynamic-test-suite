@@ -75,6 +75,7 @@ public class PosnetOriginHandler extends OriginHandler {
                 ctx.put("NUMAUTH",previousRequest.getString(38));
                 break; */
             case REVERSO_ANULACION:
+            case REVERSO_DEVOLUCION:
                 ctx.put("COD_REVER","R9");
                 ctx.put("ORIGINALDATA",previousRequest.getMTI()+previousRequest.getString(37)+previousRequest.getString(13)+previousRequest.getString(12)+previousRequest.getString(13)+"000000000000");
                 ctx.put("NUMAUTH",previousRequest.getString(38));

@@ -24,7 +24,7 @@ public class Script extends QBeanSupport  {
     @Override
     protected void startService() {
         try {
-            String[] origins = {"VISA","POSNET"};
+            String[] origins = {"VISA"};
 
 
             List<Thread> threads = new ArrayList<>();
