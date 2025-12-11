@@ -1,0 +1,10 @@
+<channel-adaptor name='selftest-adaptor-discover' class="org.jpos.q2.iso.ChannelAdaptor" logger="Q2">
+    <channel class="org.jpos.iso.channel.DinersChannel" logger="Q2" packager="org.jpos.iso.packager.GenericPackager">
+        <property name="packager-config" value="cfg/iso93ascii_DN.xml" />
+        <property name="host" value="@10_channel_host@" />
+        <property name="port" value="13327" />
+    </channel>
+    <in>selftest-diners-send</in>
+    <out>selftest-diners-receive</out>
+    <reconnect-delay>25000</reconnect-delay>
+</channel-adaptor>

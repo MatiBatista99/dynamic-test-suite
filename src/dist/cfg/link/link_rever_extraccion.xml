@@ -1,0 +1,30 @@
+<isomsg direction="incoming">
+    <field id='0' value='0420'/>
+    <field id='3' value='011000'/>
+    <field id='4' value='!AMOUNTTRN'/>
+    <field id='7' value='!TRANSMISSION_DATE'/>
+    <field id='11' value='!STAN'/>
+    <field id='12' value='!LOCAL_TIME_PREV_RESPONSE'/>
+    <field id='13' value='!LOCAL_DATE'/>
+    <field id="15" value="0000"/>
+    <field id='32' value='903294010' />
+    <field id='35' value='!TRACK2' />
+    <field id="37" value="!RRN"/>
+    <field id="39" value="68"/>
+    <field id='41' value='!TID' />
+    <field id='42' value='!MID' />
+    <field id="43" value="** REVERSAL FOR LATE/UNSOL RESPONSE **  "/>
+    <field id="49" value="032"/>
+    <field id="54" value="                       "/>
+    <field id="60" value="0071LNK1+000"/>
+    <field id="61" value="652200000000P"/>
+    <field id="90" value='!ORIGINALDATA'/>
+    <field id="95" value="000000000000000000000000000000000000000000"/>
+    <field id="100" value="509        "/>
+    <field id="102" value="                            "/>
+    <field id="103" value="                            "/>
+    <field id="122" value="           "/>
+    <field id="123" value="            "/>
+    <field id="124" value=" "/>
+    <field id="125" value=" "/>
+</isomsg>

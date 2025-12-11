@@ -1,0 +1,13 @@
+<channel-adaptor name='selftest-adaptor-link'
+                 class="org.jpos.q2.iso.ChannelAdaptor" logger="Q2">
+    <channel class="ar.cabal.channels.B24Channel" logger="Q2"
+             header="E91014000010"
+             packager="org.jpos.iso.packager.GenericPackager">
+        <property name="packager-config" value="cfg/link-packager.xml" />
+        <property name="host" value="@10_channel_host@" /> <!-- lphotonn01vts // lphotonn02vts // lphotonn03vts -->
+        <property name="port" value="11750" />
+    </channel>
+    <in>selftest-link-send</in>
+    <out>selftest-link-receive</out>
+    <reconnect-delay>10000</reconnect-delay>
+</channel-adaptor>

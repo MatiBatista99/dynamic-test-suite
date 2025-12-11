@@ -8,8 +8,11 @@ import ar.cabal.origins.visa.TypeOperationsVisa;
 import ar.cabal.qmux.QMux;
 import jcifs.CIFSContext;
 import jcifs.smb.SmbFile;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.bouncycastle.util.encoders.UTF8;
 import org.jpos.ee.DB;
 import org.jpos.iso.*;
 import org.jpos.iso.packager.XMLPackager;
@@ -20,6 +23,7 @@ import org.jpos.space.SpaceUtil;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -36,6 +40,28 @@ public abstract class OriginHandler {
             "INTERNET", "man"
     );
 
+    public ISOMsg createISOMsgByFile(Map<String, String> caseContext, String mti, String modadlidadComercio,ISOMsg previousRequest) throws ISOException, IOException {
+
+        TypeOperations operation = TypeOperations.fromKey(mti);
+
+        if (operation == null) {
+            throw new ISOException("No se encontró definición MTI+PCODE para: " + mti);
+        }
+
+        String filename = getFilename(operation,getFilePath(),modadlidadComercio);
+
+        ISOMsg msg = getMessage(filename);
+
+        // Log opcional
+        System.out.println("[DEBUG] Archivo XML seleccionado: " + filename);
+
+        //Agregamos MTI, PCode y fechas segun operacion
+        buildSpecificCase(caseContext,operation,previousRequest);
+
+        return applyRequestProps(msg,caseContext);
+    }
+
+
     public void saveOutputFile(Workbook workbook, CIFSContext context) throws Exception {
         try (var out = new jcifs.smb.SmbFileOutputStream(getOutputFile(context))) {
             workbook.write(out);
@@ -51,9 +77,7 @@ public abstract class OriginHandler {
     public abstract void buildSpecificCase(Map<String, String> ctx, TypeOperations operation, ISOMsg previousRequest) throws ISOException;
 
 
-    public SmbFile getInputFile(CIFSContext context) throws Exception{
-        return new SmbFile(buildPath(IN_SHARE, "homologacion_test_suite.xlsx"), context);
-    };
+    public  abstract SmbFile getInputFile(CIFSContext context) throws Exception;
 
     public abstract void setIrcAndSdi(DB db, ISOMsg isoMsgResponse, Row row, String mtiOrigen) throws ISOException;
 
@@ -64,11 +88,25 @@ public abstract class OriginHandler {
 
     public abstract Map<String, String> buildContextCase(Case c) throws ISOException;
 
+    public abstract String getFilePath();
 
-    public abstract ISOMsg createISOMsgByFile(Map<String,String> caseContext, String mti,String modalidadComercio,ISOMsg previousRequest) throws ISOException, IOException;
+    public abstract Case  getCaseFromRow(Row row);
 
+    protected static String getString(Row row, int index) {
+        Cell cell = row.getCell(index);
+        if (cell == null) return "";
+        return cell.getCellType() == CellType.NUMERIC ?
+                String.valueOf((long)cell.getNumericCellValue()) :
+                cell.getStringCellValue().toUpperCase();
+    }
 
-
+    protected Double getDouble(Row row, int index) {
+        Cell cell = row.getCell(index);
+        if (cell == null) return 100.0;
+        return cell.getCellType() == CellType.NUMERIC ?
+                cell.getNumericCellValue():
+                100.00;
+    }
     public ISOMsg getMessage (String filename)
             throws IOException, ISOException
     {
@@ -100,12 +138,18 @@ public abstract class OriginHandler {
                 ISOComponent comp = m.getComponent(i);
                 if (comp instanceof ISOMsg) {
                     applyRequestProps((ISOMsg) comp, ctx);
-                } else if (comp instanceof ISOField) {
+                }
+                else if (comp instanceof ISOField) {
                     String currentValue = (String) comp.getValue();
                     if (currentValue != null && currentValue.startsWith("!")) {
                         String key = currentValue.substring(1);
                         if (ctx.containsKey(key)) {
-                            m.set(i, ctx.get(key));
+                            if(getName().equals("LINK") && i==52) {
+                                    byte[] pinblockBytes = ISOUtil.hex2byte(ctx.get(key));
+                                    m.set(i, pinblockBytes);
+                            }else {
+                                m.set(i, ctx.get(key));
+                            }
                         } else {
                             System.out.println("⚠️ Missing key in context: " + key);
                         }
@@ -170,11 +214,24 @@ public abstract class OriginHandler {
                 filename.append("devolucion");
                 break;
 
+            // === EXTRACCIONES ===
+            case EXTRACCION:
+                filename.append("extraccion");
+                break;
+
+            // === CONSULTAS ===
+            case CONSULTA_SALDO:
+                filename.append("consulta_saldo");
+                break;
+
             // === REVERSOS ===
             case REVERSO_COMPRA:
             case REVERSO_ANULACION:
             case REVERSO_DEVOLUCION:
                 filename.append("rever");
+                break;
+            case REVERSO_EXTRACCION:
+                filename.append("rever_extraccion");
                 break;
 
             default:

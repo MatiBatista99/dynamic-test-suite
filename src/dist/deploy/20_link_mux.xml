@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+
+<mux class="org.jpos.q2.iso.QMUX" logger="Q2" name="selftest-link-mux">
+    <in>selftest-link-receive</in>
+    <out>selftest-link-send</out>
+    <unhandled>selftest-unhandled</unhandled>
+</mux>

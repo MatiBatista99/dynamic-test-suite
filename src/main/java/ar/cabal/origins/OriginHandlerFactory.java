@@ -1,6 +1,7 @@
 package ar.cabal.origins;
 
 
+import ar.cabal.origins.link.LinkOriginHandler;
 import ar.cabal.origins.posnet.PosnetOriginHandler;
 import ar.cabal.origins.visa.VisaOriginHandler;
 
@@ -13,6 +14,8 @@ public class OriginHandlerFactory {
                 return new VisaOriginHandler(fileServer);
             case "POSNET": ;
                 return new PosnetOriginHandler(fileServer);
+            case "LINK": ;
+                return new LinkOriginHandler(fileServer);
             default:
                 throw new IllegalArgumentException("Origen no soportado: " + origin);
         }

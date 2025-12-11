@@ -260,23 +260,12 @@ public class OriginRunner implements Runnable{
         row.createCell(7).setCellValue(isoMsgResp.getString(37));
     }
 
-    private List<CaseGroup> readCaseGroups(Sheet sheet) {
-        List<CaseGroup> groups = new ArrayList<>();
-        for (Row row : sheet) {
-            if (row.getRowNum() == 0) continue;
-            Case c = getCaseFromRow(row);
-            CaseGroup group = new CaseGroup("Grupo_" + row.getRowNum());
-            group.addCase(c);
-            groups.add(group);
-        }
-        return groups;
-    }
 
     private List<Case> readCases(Sheet sheet) {
         List<Case> cases= new ArrayList<>();
         for (Row row : sheet) {
             if (row.getRowNum() == 0) continue;
-            Case c=getCaseFromRow(row);
+            Case c=origin.getCaseFromRow(row);
             if (c.getCaseName() == null || c.getCaseName().trim().isEmpty()) continue; // Rever esto
             cases.add(c);
         }
@@ -304,7 +293,7 @@ public class OriginRunner implements Runnable{
         }
     }
 
-
+/*
     private static Case getCaseFromRow(Row row) {
         final String tipoStr = getString(row, 1);
         final String mtiStr = getString(row, 2);
@@ -334,8 +323,9 @@ public class OriginRunner implements Runnable{
                 .amount(getDouble(row,7))
                 .tarjeta(getString(row, 9))
                 .cvv(getString(row, 10))
-                .fechaVencimiento(getString(row, 11))
-                .numComercio(getString(row, 12))
+                .pinblock(getString(row,11))
+                .fechaVencimiento(getString(row, 12))
+                .numComercio(getString(row, 13))
                 .specificCases(specificCases)
                 .build();
     }
@@ -357,7 +347,7 @@ public class OriginRunner implements Runnable{
         return cell.getCellType() == CellType.NUMERIC ?
                 cell.getNumericCellValue():
                 100.00;
-    }
+    } */
 
     public Map<String, CodeMappingDto> getCodeMappings(Session session, String origen) {
         String sql = """

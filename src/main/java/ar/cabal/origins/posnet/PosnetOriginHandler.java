@@ -19,9 +19,7 @@ import org.jpos.iso.MUX;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -81,6 +79,11 @@ public class PosnetOriginHandler extends OriginHandler {
                 ctx.put("NUMAUTH",previousRequest.getString(38));
                 break;
         }
+    }
+
+    @Override
+    public SmbFile getInputFile(CIFSContext context) throws Exception {
+        return new SmbFile(buildPath(IN_SHARE, "homologacion_test_suite.xlsx"), context);
     }
 
     @Override
@@ -273,6 +276,7 @@ public class PosnetOriginHandler extends OriginHandler {
         return ctx;
     }
 
+    /*
 
     @Override
     public ISOMsg createISOMsgByFile(Map<String, String> caseContext, String mti, String modadlidadComercio,ISOMsg previousRequest) throws ISOException, IOException {
@@ -294,8 +298,47 @@ public class PosnetOriginHandler extends OriginHandler {
         buildSpecificCase(caseContext,operation,previousRequest);
 
         return applyRequestProps(msg,caseContext);
+    } */
+
+    @Override
+    public String getFilePath() {
+        return filePath;
     }
 
+    @Override
+    public Case getCaseFromRow(Row row) {
+        final String tipoStr = getString(row, 1);
+        final String mtiStr = getString(row, 2);
+        final String resultadoStr = getString(row, 8);
+
+        final String[] tipos = tipoStr.contains("+") ? tipoStr.split("\\+") : new String[]{tipoStr};
+        final String[] mtis = mtiStr.contains("-") ? mtiStr.split("-") : new String[]{mtiStr};
+        final String[] resultadosEsperados = resultadoStr.contains("/") ? resultadoStr.split("/") : new String[]{resultadoStr};
+
+        final int total = Math.max(mtis.length, Math.max(tipos.length, resultadosEsperados.length));
+        final List<Case.SpecificCase> specificCases = new ArrayList<>(total);
+
+        for (int i = 0; i < total; i++) {
+            final Case.SpecificCase specificCase = new Case.SpecificCase();
+            specificCase.setMti(mtis[i].trim());
+            specificCase.setTipo(i < tipos.length ? tipos[i] : tipos[0]);
+            specificCase.setResultadoEsperado(i < resultadosEsperados.length ? resultadosEsperados[i] : resultadosEsperados[0]);
+            specificCases.add(specificCase);
+        }
+
+        return Case.builder()
+                .caseName(getString(row, 0))
+                .cuotas(getString(row, 3))
+                .condicionTarjeta(getString(row, 4))
+                .condicionDisponibleDeLaTarjetaCuenta(getString(row, 5))
+                .modalidadComercio(getString(row, 6))
+                .amount(getDouble(row,7))
+                .tarjeta(getString(row, 9))
+                .fechaVencimiento(getString(row, 11))
+                .numComercio(getString(row, 12))
+                .specificCases(specificCases)
+                .build();
+    }
 
 
 }

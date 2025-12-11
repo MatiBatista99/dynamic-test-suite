@@ -16,6 +16,8 @@ public class MuxFactory {
                 return NameRegistrar.get("mux.selftest-visa-mux");
             case "POSNET": ;
                 return NameRegistrar.get("mux.selftest-posnet-mux");
+            case "LINK": ;
+                return NameRegistrar.get("mux.selftest-link-mux");
             default:
                 throw new IllegalArgumentException("Origen no soportado: " + origin);
         }

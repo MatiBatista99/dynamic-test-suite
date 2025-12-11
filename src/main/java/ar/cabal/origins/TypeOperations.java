@@ -14,10 +14,18 @@ public enum TypeOperations {
     AUTORIZACION_ANULACION("0200.02", "Anulación de Compra"),
     AUTORIZACION_DEVOLUCION("0200.20", "Devolución de Compra"),
 
+    //Extracciones
+    EXTRACCION("0200.01", "Extraccion"),
+
+    //Consulta de saldos
+    CONSULTA_SALDO("0200.31", "Consulta saldo"),
+
     // Reverso
     REVERSO_COMPRA("0420.00", "Reverso de compra"),
     REVERSO_ANULACION("0420.02", "Reverso de anulacion"),
-    REVERSO_DEVOLUCION("0420.20", "Reverso de devolucion");
+    REVERSO_DEVOLUCION("0420.20", "Reverso de devolucion"),
+    REVERSO_EXTRACCION("0420.01", "Reverso de extraccion");
+
 
     private final String originalMti;
     private final String description;

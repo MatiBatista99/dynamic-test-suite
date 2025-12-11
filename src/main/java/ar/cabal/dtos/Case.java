@@ -16,6 +16,7 @@ public class Case {
     private Double amount;
     private String tarjeta;
     private String cvv;
+    private String pinblock;
     private String fechaVencimiento;
     private String numComercio;
     private List<SpecificCase> specificCases;

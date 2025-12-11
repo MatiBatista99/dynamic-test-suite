@@ -42,22 +42,6 @@ public class VisaOriginHandler extends OriginHandler {
     }
 
 
-    /*
-    public void prepareRequest(ISOMsg req, ISOMsg previousResponse, Case.SpecificCase specificCase) throws ParseException {
-        //ISOMsg request=createISOMsgByFile(c,specificCase);
-
-        if (!"0200.00".equalsIgnoreCase(specificCase.getMti()) && previousResponse != null) {
-            req.set(37, previousResponse.getString(37));
-            req.set(11, previousResponse.getString(11));
-            req.set(41, previousResponse.getString(41));
-        }
-        if(specificCase.getMti().toLowerCase().contains("0420")  && previousResponse != null){
-            Date date=getDate(previousResponse.getString(12));
-            String dateHoy=getDateDay(date);
-            req.set(56,"1100"+previousResponse.getString(11)+dateHoy+getDateTime(date)+"00"+dateHoy+"0000");
-        }
-    } */
-
     @Override
     public Map<String, String> buildContextCase(Case c) throws ISOException {
         Map<String, String> ctx = new HashMap<>();
@@ -226,13 +210,18 @@ public class VisaOriginHandler extends OriginHandler {
 
     }
 
+    @Override
+    public SmbFile getInputFile(CIFSContext context) throws Exception {
+        return new SmbFile(buildPath(IN_SHARE, "homologacion_test_suite.xlsx"), context);
+    }
+
 
     @Override
     public String getName() {
         return "VISA";
     }
 
-
+/*
     @Override
     public ISOMsg createISOMsgByFile(Map<String, String> caseContext, String mti, String modalidadComercio, ISOMsg previousRequest) throws ISOException, IOException {
         TypeOperations operation = TypeOperations.fromKey(mti);
@@ -252,6 +241,47 @@ public class VisaOriginHandler extends OriginHandler {
         buildSpecificCase(caseContext,operation,previousRequest);
 
         return applyRequestProps(msg, caseContext);
+    } */
+
+    @Override
+    public String getFilePath() {
+        return filePath;
+    }
+
+    @Override
+    public Case getCaseFromRow(Row row) {
+        final String tipoStr = getString(row, 1);
+        final String mtiStr = getString(row, 2);
+        final String resultadoStr = getString(row, 8);
+
+        final String[] tipos = tipoStr.contains("+") ? tipoStr.split("\\+") : new String[]{tipoStr};
+        final String[] mtis = mtiStr.contains("-") ? mtiStr.split("-") : new String[]{mtiStr};
+        final String[] resultadosEsperados = resultadoStr.contains("/") ? resultadoStr.split("/") : new String[]{resultadoStr};
+
+        final int total = Math.max(mtis.length, Math.max(tipos.length, resultadosEsperados.length));
+        final List<Case.SpecificCase> specificCases = new ArrayList<>(total);
+
+        for (int i = 0; i < total; i++) {
+            final Case.SpecificCase specificCase = new Case.SpecificCase();
+            specificCase.setMti(mtis[i].trim());
+            specificCase.setTipo(i < tipos.length ? tipos[i] : tipos[0]);
+            specificCase.setResultadoEsperado(i < resultadosEsperados.length ? resultadosEsperados[i] : resultadosEsperados[0]);
+            specificCases.add(specificCase);
+        }
+
+        return Case.builder()
+                .caseName(getString(row, 0))
+                .cuotas(getString(row, 3))
+                .condicionTarjeta(getString(row, 4))
+                .condicionDisponibleDeLaTarjetaCuenta(getString(row, 5))
+                .modalidadComercio(getString(row, 6))
+                .amount(getDouble(row,7))
+                .tarjeta(getString(row, 9))
+                .cvv(getString(row, 10))
+                .fechaVencimiento(getString(row, 11))
+                .numComercio(getString(row, 12))
+                .specificCases(specificCases)
+                .build();
     }
 
     @Override
@@ -266,45 +296,6 @@ public class VisaOriginHandler extends OriginHandler {
         return req;
     }
 
-
-
-/*
-    @Override
-    public String getFilename(TypeOperations operation, String modalidad) throws ISOException {
-
-        StringBuilder filename = new StringBuilder("cfg/visa/visa_");
-
-        switch (operation) {
-            // === AUTORIZACIONES ===
-            case AUTORIZACION_COMPRA:
-                filename.append("auth_");
-                filename.append(resolveModalidad(modalidad, operation));
-                break;
-
-            case AUTORIZACION_ANULACION:
-                filename.append("anul");
-                break;
-
-            case AUTORIZACION_DEVOLUCION:
-                filename.append("devolucion");
-                break;
-
-            // === REVERSOS ===
-            case REVERSO_COMPRA:
-            case REVERSO_ANULACION:
-            case REVERSO_DEVOLUCION:
-                filename.append("rever");
-                break;
-
-            default:
-                throw new ISOException("Tipo de operación no soportado: " + operation.name());
-        }
-
-        filename.append(".xml");
-        return filename.toString();
-    }
-
- */
 
 
     @Override
