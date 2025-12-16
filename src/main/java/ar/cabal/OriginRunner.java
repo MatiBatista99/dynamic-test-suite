@@ -186,10 +186,10 @@ public class OriginRunner implements Runnable{
                     CompletableFuture.runAsync(() -> {
                         try {
                             ISOMsg previousRequest = null;
-
+                            Map<String,String> contextCase=origin.buildContextCase(c);
                             for (Case.SpecificCase specificCase : c.getSpecificCases()) {
                                 previousRequest = origin.processSpecificCase(
-                                        origin.buildContextCase(c),
+                                        contextCase,
                                         specificCase,
                                         c,
                                         previousRequest,
