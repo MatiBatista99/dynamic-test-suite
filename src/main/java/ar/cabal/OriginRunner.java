@@ -38,7 +38,7 @@ public class OriginRunner implements Runnable{
     private final MUX mux;
     private final DB db;
     private final Log log;
-    private static final int THREAD_POOL_SIZE = Math.max(4, Runtime.getRuntime().availableProcessors() * 2);
+    private static final int MAX_THREADS_PER_ORIGIN = 5;
 
     public OriginRunner (OriginHandler originHandler, MUX mux, DB db, Log log) {
 
@@ -51,6 +51,7 @@ public class OriginRunner implements Runnable{
     @Override
     public void run() {
         log.info("Processing started origin "+origin.getName() +": " + Timestamp.valueOf(LocalDateTime.now()));
+        ExecutorService executor = Executors.newFixedThreadPool(MAX_THREADS_PER_ORIGIN );
 
         try {
             CIFSContext context = getContextFileServer();
@@ -64,9 +65,7 @@ public class OriginRunner implements Runnable{
                 if (!mux.isConnected())
                     throw new IllegalStateException("MUX is not connected.");
 
-                ExecutorService executor = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
-
-                IsoBulkSender sender = new IsoBulkSender(THREAD_POOL_SIZE, mux);
+                IsoBulkSender sender = new IsoBulkSender(mux);
 
                 List<CompletableFuture<Void>> futures = new ArrayList<>();
 
@@ -76,7 +75,7 @@ public class OriginRunner implements Runnable{
                     futures.add(CompletableFuture.runAsync(() -> {
                         try (XSSFWorkbook localWb = new XSSFWorkbook()) {
                             // Procesa la hoja en su workbook temporal
-                            processSheet(sheet, localWb, sender);
+                            processSheet(sheet, localWb, sender,executor);
 
                             // Una vez procesada, copia las hojas al workbook principal
                             synchronized (workbookOutput) {
@@ -95,7 +94,6 @@ public class OriginRunner implements Runnable{
 
                 origin.saveOutputFile(workbookOutput,context);
 
-                sender.shutdown();
                 executor.shutdown();
 
                 log.info("Processing finished: " + Timestamp.valueOf(LocalDateTime.now()));
@@ -164,7 +162,12 @@ public class OriginRunner implements Runnable{
         }
     }
 
-    private void processSheet(Sheet sheet, Workbook workbookResponse, IsoBulkSender sender) throws Exception {
+    private void processSheet(
+            Sheet sheet,
+            Workbook workbookResponse,
+            IsoBulkSender sender,
+            ExecutorService executor
+    ) throws Exception {
 
         List<Case> cases = readCases(sheet);
         if (cases.isEmpty()) return;
@@ -173,37 +176,38 @@ public class OriginRunner implements Runnable{
         writeHeader(sheetResponse);
 
         ConcurrentLinkedQueue<ResultRecord> results = new ConcurrentLinkedQueue<>();
-        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        List<CompletableFuture<Void>> caseFutures = new ArrayList<>();
 
         for (int i = 0; i < cases.size(); i++) {
             final int groupIndex = i;
             Case c = cases.get(i);
-            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-                try {
-                    ISOMsg previousRequest= null;
-                    //
-                    Map<String,String> caseContext=origin.buildContextCase(c);
-                    for(Case.SpecificCase specificCase: c.getSpecificCases()) {
-                        previousRequest = origin.processSpecificCase(
-                                caseContext,
-                                specificCase,
-                                c,
-                                previousRequest,
-                                sender,
-                                results,
-                                groupIndex
-                        );
 
-                    }
-                } catch (Exception e) {
-                    log.warn("Error in case " + c.getCaseName() + ": " + e.getMessage(), e);
-                }
-            });
+            caseFutures.add(
+                    CompletableFuture.runAsync(() -> {
+                        try {
+                            ISOMsg previousRequest = null;
 
-            futures.add(future);
+                            for (Case.SpecificCase specificCase : c.getSpecificCases()) {
+                                previousRequest = origin.processSpecificCase(
+                                        origin.buildContextCase(c),
+                                        specificCase,
+                                        c,
+                                        previousRequest,
+                                        sender,
+                                        results,
+                                        groupIndex
+                                );
+                            }
+                        } catch (Exception e) {
+                            log.warn("Error in case " + c.getCaseName(), e);
+                        }
+                    }, executor)
+            );
         }
 
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        CompletableFuture
+                .allOf(caseFutures.toArray(new CompletableFuture[0]))
+                .join();
 
         List<ResultRecord> sortedResults = results.stream()
                 .sorted(Comparator.comparingInt(ResultRecord::getIndex))
@@ -214,6 +218,7 @@ public class OriginRunner implements Runnable{
             writeResultRow(sheetResponse, rowIndex++, record);
         }
     }
+
 
     // --- Métodos auxiliares (sin cambios lógicos, solo limpieza) ---
 

@@ -14,12 +14,10 @@ import org.jpos.util.NameRegistrar;
 @Data
 public class IsoBulkSender extends Log {
 
-    private final ExecutorService executor;
     private MUX mux;
 
 
-    public IsoBulkSender(int poolSize,MUX mux) {
-        this.executor = Executors.newFixedThreadPool(poolSize);
+    public IsoBulkSender(MUX mux) {
         this.mux=mux;
     }
 
@@ -35,10 +33,6 @@ public class IsoBulkSender extends Log {
         } catch (Exception e) {
             throw new RuntimeException("Error enviando transacción", e);
         }
-    }
-
-    public void shutdown() {
-        executor.shutdown();
     }
 }
 
